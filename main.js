@@ -25,6 +25,7 @@ class AudioEngine {
     }
 
     // --- CUSTOM WAVE GENERATORS ---
+
     getTrapezoidWave(sharpness) {
         const key = `trap_${sharpness}`;
         if (this.waveCache[key]) return this.waveCache[key];
@@ -44,12 +45,8 @@ class AudioEngine {
     getOrganWave() {
         const key = `organ`;
         if (this.waveCache[key]) return this.waveCache[key];
-        
-        // FIX: Arrays must match in length. 
-        // Imag has 6 elements (index 0 + 5 harmonics), so Real must have 6 too.
         const real = new Float32Array([0, 0, 0, 0, 0, 0]); 
         const imag = new Float32Array([0, 1, 0.8, 0.6, 0.4, 0.2]); 
-        
         const wave = this.ctx.createPeriodicWave(real, imag);
         this.waveCache[key] = wave;
         return wave;
@@ -70,7 +67,42 @@ class AudioEngine {
         return wave;
     }
 
+    // NEW: Pulse 25% (NES Style)
+    getPulseWave() {
+        const key = `pulse25`;
+        if (this.waveCache[key]) return this.waveCache[key];
+        
+        const num = 64;
+        const real = new Float32Array(num);
+        const imag = new Float32Array(num);
+        
+        // Fourier series for 25% duty cycle pulse
+        for (let i = 1; i < num; i++) {
+            // Formula: (2 / (n * PI)) * sin(n * PI * duty)
+            imag[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * 0.25);
+        }
+
+        const wave = this.ctx.createPeriodicWave(real, imag);
+        this.waveCache[key] = wave;
+        return wave;
+    }
+
+    // NEW: Bassoon (Heavy Bass)
+    getBassoonWave() {
+        const key = `bassoon`;
+        if (this.waveCache[key]) return this.waveCache[key];
+        
+        // Strong fundamental, strong 3rd, specific higher harmonics
+        const real = new Float32Array(10).fill(0);
+        const imag = new Float32Array([0, 1.0, 0.2, 0.8, 0.1, 0.4, 0.1, 0.2, 0.0, 0.1]);
+        
+        const wave = this.ctx.createPeriodicWave(real, imag);
+        this.waveCache[key] = wave;
+        return wave;
+    }
+
     // --- WAVESHAPERS ---
+
     getPowerCurve(amount) {
         const key = `pow_${amount}`;
         if (this.shaperCache[key]) return this.shaperCache[key];
@@ -101,27 +133,61 @@ class AudioEngine {
         return curve;
     }
 
+    // NEW: Wavefolder (Sci-Fi Distortion)
+    getFoldbackCurve(amount) {
+        const key = `fold_${amount}`;
+        if (this.shaperCache[key]) return this.shaperCache[key];
+        
+        const n_samples = 1024; // Higher resolution for folding
+        const curve = new Float32Array(n_samples);
+        
+        // Amount 0..1 maps to Multiplier 1..6
+        // This creates a sine-folding effect. 
+        // Low amount = linear-ish. High amount = multiple folds.
+        const drive = 1 + (amount * 5);
+
+        for (let i = 0; i < n_samples; ++i ) {
+            let x = i * 2 / n_samples - 1;
+            // Math.sin(x * drive) creates the folding effect
+            curve[i] = Math.sin(x * drive * (Math.PI / 2));
+        }
+        this.shaperCache[key] = curve;
+        return curve;
+    }
+
     // --- PLAYBACK ---
+
     playTone(params) {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
+        // 1. Setup Waveform
         if (['sine', 'square', 'sawtooth', 'triangle'].includes(params.wave)) {
             osc.type = params.wave;
-        } else if (params.wave === 'trapezoid') {
+        } 
+        // Advanced Periodic
+        else if (params.wave === 'trapezoid') {
             osc.setPeriodicWave(this.getTrapezoidWave(params.shapeParam));
         } else if (params.wave === 'organ') {
             osc.setPeriodicWave(this.getOrganWave());
         } else if (params.wave === 'metal') {
             osc.setPeriodicWave(this.getMetallicWave());
-        } else if (params.wave === 'powersine' || params.wave === 'bitcrush') {
+        } else if (params.wave === 'pulse25') {
+            osc.setPeriodicWave(this.getPulseWave());
+        } else if (params.wave === 'bassoon') {
+            osc.setPeriodicWave(this.getBassoonWave());
+        }
+        // Shapers (Base is Sine)
+        else if (['powersine', 'bitcrush', 'foldback'].includes(params.wave)) {
             osc.type = 'sine';
         }
 
+        // 2. Frequency
         osc.frequency.setValueAtTime(params.start, t);
         osc.frequency.exponentialRampToValueAtTime(Math.max(1, params.end), t + params.dur);
 
+        // 3. FM
         if (params.fmActive) {
             const modulator = this.ctx.createOscillator();
             const modGain = this.ctx.createGain();
@@ -134,7 +200,9 @@ class AudioEngine {
             modulator.stop(t + params.dur);
         }
 
+        // 4. Routing (Shaper or Direct)
         let outputNode = osc;
+
         if (params.wave === 'powersine') {
             const shaper = this.ctx.createWaveShaper();
             shaper.curve = this.getPowerCurve(params.shapeParam);
@@ -145,8 +213,14 @@ class AudioEngine {
             shaper.curve = this.getBitCrushCurve(params.shapeParam);
             osc.connect(shaper);
             outputNode = shaper;
+        } else if (params.wave === 'foldback') {
+            const shaper = this.ctx.createWaveShaper();
+            shaper.curve = this.getFoldbackCurve(params.shapeParam);
+            osc.connect(shaper);
+            outputNode = shaper;
         }
 
+        // 5. Volume
         gain.gain.setValueAtTime(params.vol, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
 
@@ -329,7 +403,6 @@ class App {
     }
 
     // --- PLAYBACK ---
-    // Updated to accept an optional ID to play a specific sound without selecting it
     playSound(specificId = null) {
         const idToPlay = specificId || this.selectedId;
         const sound = this.sounds.find(s => s.id === idToPlay);
@@ -426,12 +499,10 @@ class App {
                             const el = document.createElement('div');
                             el.className = `sound-item ${s.id === this.selectedId ? 'active' : ''}`;
                             
-                            // Name
                             const nameSpan = document.createElement('span');
                             nameSpan.innerText = s.displayName;
                             el.appendChild(nameSpan);
 
-                            // Play Button (Restored)
                             const playBtn = document.createElement('button');
                             playBtn.className = 'btn btn-green btn-sm';
                             playBtn.innerText = '▶';
@@ -470,11 +541,14 @@ class App {
 
             if (l.type === 'tone') {
                 let shapeControl = '';
-                if (['trapezoid', 'powersine', 'bitcrush'].includes(l.wave)) {
+                // Logic for showing the slider for new waveforms
+                if (['trapezoid', 'powersine', 'bitcrush', 'foldback'].includes(l.wave)) {
                     let label = 'Param';
                     if (l.wave === 'trapezoid') label = 'Sharpness';
                     if (l.wave === 'powersine') label = 'Power';
                     if (l.wave === 'bitcrush') label = 'Crush';
+                    if (l.wave === 'foldback') label = 'Drive'; // New label
+                    
                     shapeControl = `
                         <div class="control-group">
                             <label>${label} <span class="val-display">${l.shapeParam}</span></label>
@@ -515,10 +589,13 @@ class App {
                                     <option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option>
                                     <option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option>
                                     <option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option>
+                                    <option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25% (NES)</option>
+                                    <option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon (Heavy)</option>
                                 </optgroup>
                                 <optgroup label="Shapers">
                                     <option value="powersine" ${l.wave==='powersine'?'selected':''}>Power Sine</option>
                                     <option value="bitcrush" ${l.wave==='bitcrush'?'selected':''}>BitCrush</option>
+                                    <option value="foldback" ${l.wave==='foldback'?'selected':''}>Wavefolder</option>
                                 </optgroup>
                             </select>
                         </div>
