@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Procedural Sound Designer</title>
+    <title>Pro Sound Designer: Modular</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,6 +14,7 @@
             --danger: #e74c3c;
             --success: #2ecc71;
             --input-bg: #233040;
+            --subgroup-bg: rgba(0,0,0,0.15);
         }
 
         body {
@@ -28,7 +29,7 @@
 
         /* SIDEBAR */
         .sidebar {
-            width: 300px;
+            width: 320px;
             background: rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
@@ -43,6 +44,9 @@
             border-bottom: 1px solid #444;
             letter-spacing: 1px;
             color: var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .sound-list {
@@ -52,10 +56,10 @@
         }
 
         .category-header {
-            padding: 8px 10px;
+            padding: 10px;
             background: rgba(255,255,255,0.1);
-            font-size: 12px;
-            color: #bdc3c7;
+            font-size: 13px;
+            color: #fff;
             text-transform: uppercase;
             font-weight: bold;
             cursor: pointer;
@@ -63,38 +67,47 @@
             display: flex;
             align-items: center;
             border-bottom: 1px solid rgba(0,0,0,0.2);
-            transition: background 0.2s;
         }
-        .category-header:hover { background: rgba(255,255,255,0.15); color: white; }
-        .category-arrow { margin-right: 8px; font-size: 10px; transition: transform 0.2s; }
-        .category-header.collapsed .category-arrow { transform: rotate(-90deg); }
+        .category-header:hover { background: rgba(255,255,255,0.15); }
+        
+        .subgroup-header {
+            padding: 6px 10px 6px 20px;
+            background: var(--subgroup-bg);
+            font-size: 11px;
+            color: #bdc3c7;
+            text-transform: uppercase;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+        .subgroup-header:hover { color: var(--accent); }
+
+        .arrow { margin-right: 8px; font-size: 10px; transition: transform 0.2s; }
+        .collapsed .arrow { transform: rotate(-90deg); }
 
         .sound-item {
-            padding: 6px 15px 6px 25px;
+            padding: 5px 10px 5px 35px;
             cursor: pointer;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.02);
             transition: background 0.2s;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
-            height: 32px;
+            font-size: 13px;
+            height: 28px;
+            color: #95a5a6;
         }
 
-        .sound-item:hover { background: rgba(255,255,255,0.05); }
+        .sound-item:hover { background: rgba(255,255,255,0.05); color: white; }
         .sound-item.active { background: var(--accent); color: #2c3e50; font-weight: bold; }
 
-        .item-controls {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-
         .sidebar-controls {
-            padding: 15px;
+            padding: 10px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            gap: 5px;
             border-top: 1px solid #444;
             background: rgba(0,0,0,0.2);
         }
@@ -138,16 +151,16 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            width: 140px; /* Slightly wider for larger text */
+            width: 140px;
         }
 
         .play-btn {
-            width: 80px; height: 80px;
+            width: 70px; height: 70px;
             border-radius: 50%;
             background: var(--success);
             border: none;
             color: white;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
@@ -161,26 +174,8 @@
         .play-btn:active { transform: scale(0.95); }
         .play-btn:hover { background: #27ae60; }
         .play-btn.playing { background: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
-        .play-btn.playing:hover { background: #c0392b; }
 
-        .loop-slider-container {
-            width: 100%;
-            text-align: center;
-            background: rgba(0,0,0,0.2);
-            padding: 5px;
-            border-radius: 4px;
-        }
-        .loop-slider-container label { font-size: 10px; color: #bdc3c7; display: block; margin-bottom: 2px; }
-        .loop-slider-container input { width: 100%; cursor: pointer; margin-top: 5px; }
-        
-        .loop-val-display {
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--accent);
-            font-family: monospace;
-        }
-
-        /* DATA EXCHANGE BOX */
+        /* DATA EXCHANGE */
         .data-exchange {
             background: #1e272e;
             padding: 10px;
@@ -188,15 +183,15 @@
             margin-bottom: 20px;
             border: 1px solid #444;
         }
-        .data-exchange h4 { margin: 0 0 5px 0; font-size: 12px; color: #95a5a6; text-transform: uppercase; }
+        .data-exchange h4 { margin: 0 0 5px 0; font-size: 11px; color: #95a5a6; text-transform: uppercase; }
         .data-exchange textarea {
             width: 100%;
-            height: 60px;
+            height: 50px;
             background: #111;
             color: var(--accent);
             border: 1px solid #333;
             font-family: monospace;
-            font-size: 11px;
+            font-size: 10px;
             padding: 5px;
             box-sizing: border-box;
             resize: vertical;
@@ -209,11 +204,7 @@
         }
 
         /* LAYERS */
-        .layers-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .layers-container { display: flex; flex-direction: column; gap: 15px; }
 
         .layer-card {
             background: var(--panel);
@@ -236,67 +227,81 @@
             text-transform: uppercase;
             color: #bdc3c7;
             font-size: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
         }
-        
+
         .layer-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
-        .active-toggle {
+        .toggle-label {
             display: flex;
             align-items: center;
             gap: 5px;
             cursor: pointer;
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text);
+            user-select: none;
         }
-
+        .toggle-label:hover { color: white; }
+        .toggle-label input { cursor: pointer; }
+        
         .layer-controls {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        /* FM SECTION */
+        .fm-section {
+            grid-column: 1 / -1;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 2px solid var(--accent);
+        }
+        .fm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 15px;
         }
 
         .control-group { display: flex; flex-direction: column; gap: 5px; }
-        .control-group label { font-size: 12px; color: #95a5a6; }
+        .control-group label { font-size: 11px; color: #95a5a6; white-space: nowrap; }
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
-        .control-group select { background: var(--input-bg); color: white; border: 1px solid #555; padding: 4px; }
+        .control-group select { background: var(--input-bg); color: white; border: 1px solid #555; padding: 4px; font-size: 11px; }
 
         .val-display { float: right; color: var(--accent); font-family: monospace; }
 
         .btn {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
         }
-        .btn-sm { padding: 4px 8px; font-size: 10px; }
-        .btn-blue { background: var(--c-primary, #3498db); }
+        .btn-sm { padding: 2px 6px; font-size: 10px; }
+        .btn-blue { background: #3498db; }
         .btn-red { background: var(--danger); }
         .btn-gray { background: #7f8c8d; }
         .btn-green { background: var(--success); }
         .btn-orange { background: #e67e22; }
-        .btn-purple { background: #9b59b6; }
 
-        .add-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            padding-bottom: 50px;
-        }
+        .add-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; padding-bottom: 50px; }
 
         .code-block {
             background: #1e272e;
             padding: 15px;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11px;
             color: #bdc3c7;
             margin-top: 20px;
             white-space: pre;
@@ -304,31 +309,30 @@
             position: relative;
             border: 1px solid #444;
         }
-        .copy-btn {
-            position: absolute;
-            top: 10px; right: 10px;
-        }
+        .copy-btn { position: absolute; top: 10px; right: 10px; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #2c3e50; }
         ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #777; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div class="sidebar-header">SOUND LIBRARY</div>
+    <div class="sidebar-header">
+        <span>LIBRARY</span>
+        <button class="btn btn-gray btn-sm" onclick="app.collapseAll()">COLLAPSE ALL</button>
+    </div>
     <div class="sound-list" id="soundList"></div>
     <div class="sidebar-controls">
         <button class="btn btn-green" onclick="app.addNewSound()">+ NEW</button>
-        <button class="btn btn-purple" onclick="app.duplicateSound()">DUPLICATE</button>
+        <button class="btn btn-gray" onclick="app.duplicateSound()">DUPLICATE</button>
         <button class="btn btn-red full-width" onclick="app.deleteCurrentSound()">DELETE SELECTED</button>
-        <button class="btn btn-gray" onclick="app.saveLibrary()">SAVE FILE</button>
-        <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">LOAD FILE</button>
+        <button class="btn btn-gray" onclick="app.saveLibrary()">SAVE</button>
+        <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">LOAD</button>
         <input type="file" id="fileInput" style="display:none" accept=".json" onchange="app.loadLibrary(this)">
-        <button class="btn btn-red full-width" onclick="app.resetLibrary()">RESET LIBRARY</button>
+        <button class="btn btn-red full-width" onclick="app.resetLibrary()">RESET DEFAULTS</button>
     </div>
 </div>
 
@@ -336,764 +340,10 @@
     <!-- Content injected by JS -->
 </div>
 
-<script>
-/**
- * AUDIO ENGINE
- */
-class AudioEngine {
-    constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.3;
-        this.masterGain.connect(this.ctx.destination);
-        this.noiseBuffer = this.createNoiseBuffer();
-    }
+<!-- 1. Load Presets Data First -->
+<script src="presets.js"></script>
+<!-- 2. Load Application Logic -->
+<script src="main.js"></script>
 
-    resume() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-    }
-
-    createNoiseBuffer() {
-        const bufferSize = this.ctx.sampleRate * 2; 
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        return buffer;
-    }
-
-    playTone(freqStart, freqEnd, duration, type, vol) {
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = type;
-        osc.frequency.setValueAtTime(freqStart, t);
-        osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), t + duration);
-
-        gain.gain.setValueAtTime(vol, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-
-        osc.start();
-        osc.stop(t + duration);
-    }
-
-    playNoise(duration, vol, filterFreq) {
-        const t = this.ctx.currentTime;
-        const src = this.ctx.createBufferSource();
-        src.buffer = this.noiseBuffer;
-        
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(filterFreq, t);
-        filter.frequency.exponentialRampToValueAtTime(10, t + duration);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(vol, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-
-        src.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterGain);
-
-        src.start();
-        src.stop(t + duration);
-    }
-}
-
-/**
- * APP LOGIC
- */
-class App {
-    constructor() {
-        this.audio = new AudioEngine();
-        this.sounds = [];
-        this.selectedId = null;
-        this.collapsedGroups = new Set();
-        
-        // Loop state
-        this.loopTimer = null;
-        this.isLooping = false;
-        this.loopInterval = 200; // ms
-
-        this.loadDefaults();
-        this.renderList();
-        
-        window.addEventListener('click', () => this.audio.resume(), { once: true });
-    }
-
-    loadDefaults() {
-        this.sounds = [
-            // --- JUMP VARIATIONS ---
-            {
-                id: 'jump_1', name: 'Jump 1 - Classic', desc: 'Standard platformer jump. Sine wave slide.',
-                layers: [{ type: 'tone', start: 150, end: 350, dur: 0.15, wave: 'sine', vol: 0.5, active: true }]
-            },
-            {
-                id: 'jump_2', name: 'Jump 2 - Spring', desc: 'Bouncy spring effect using Triangle wave.',
-                layers: [{ type: 'tone', start: 200, end: 600, dur: 0.25, wave: 'triangle', vol: 0.4, active: true }]
-            },
-            {
-                id: 'jump_3', name: 'Jump 3 - Jet', desc: 'Mechanical assisted jump. Sawtooth + Noise.',
-                layers: [
-                    { type: 'tone', start: 100, end: 200, dur: 0.2, wave: 'sawtooth', vol: 0.2, active: true },
-                    { type: 'noise', dur: 0.15, vol: 0.3, filter: 2000, active: true }
-                ]
-            },
-            {
-                id: 'jump_4', name: 'Jump 4 - Heavy', desc: 'Heavy boots lifting off. Low freq square.',
-                layers: [
-                    { type: 'tone', start: 80, end: 150, dur: 0.2, wave: 'square', vol: 0.3, active: true },
-                    { type: 'tone', start: 150, end: 300, dur: 0.2, wave: 'sine', vol: 0.3, active: true }
-                ]
-            },
-            {
-                id: 'jump_5', name: 'Jump 5 - Double', desc: 'High pitched, quick air jump.',
-                layers: [{ type: 'tone', start: 400, end: 600, dur: 0.1, wave: 'sine', vol: 0.4, active: true }]
-            },
-
-            // --- SHOOT VARIATIONS ---
-            {
-                id: 'shoot_1', name: 'Shoot 1 - Blaster', desc: 'Retro arcade blaster. Square wave slide.',
-                layers: [
-                    { type: 'tone', start: 800, end: 100, dur: 0.12, wave: 'square', vol: 0.3, active: true },
-                    { type: 'noise', dur: 0.05, vol: 0.2, filter: 4000, active: true }
-                ]
-            },
-            {
-                id: 'shoot_2', name: 'Shoot 2 - Plasma', desc: 'Sci-fi energy shot. Triangle + Sine.',
-                layers: [
-                    { type: 'tone', start: 1200, end: 600, dur: 0.15, wave: 'triangle', vol: 0.2, active: true },
-                    { type: 'tone', start: 600, end: 100, dur: 0.15, wave: 'sine', vol: 0.3, active: true }
-                ]
-            },
-            {
-                id: 'shoot_3', name: 'Shoot 3 - Shotgun', desc: 'Heavy impact. Noise dominant + Sawtooth bass.',
-                layers: [
-                    { type: 'noise', dur: 0.2, vol: 0.6, filter: 2500, active: true },
-                    { type: 'tone', start: 150, end: 50, dur: 0.2, wave: 'sawtooth', vol: 0.4, active: true }
-                ]
-            },
-            {
-                id: 'shoot_4', name: 'Shoot 4 - Silenced', desc: 'Quick, high filter noise "pfft".',
-                layers: [
-                    { type: 'noise', dur: 0.05, vol: 0.4, filter: 6000, active: true },
-                    { type: 'tone', start: 300, end: 100, dur: 0.05, wave: 'sine', vol: 0.2, active: true }
-                ]
-            },
-            {
-                id: 'shoot_5', name: 'Shoot 5 - Sniper', desc: 'High velocity crack + long tail.',
-                layers: [
-                    { type: 'tone', start: 2000, end: 50, dur: 0.1, wave: 'sawtooth', vol: 0.2, active: true },
-                    { type: 'noise', dur: 0.3, vol: 0.3, filter: 1500, active: true }
-                ]
-            },
-
-            // --- EXPLOSION VARIATIONS ---
-            {
-                id: 'exp_1', name: 'Explosion 1 - Standard', desc: 'Balanced noise and sub bass.',
-                layers: [
-                    { type: 'noise', dur: 0.4, vol: 0.7, filter: 1000, active: true },
-                    { type: 'tone', start: 100, end: 10, dur: 0.4, wave: 'sine', vol: 0.6, active: true }
-                ]
-            },
-            {
-                id: 'exp_2', name: 'Explosion 2 - 8bit', desc: 'Crunchy square wave decay.',
-                layers: [
-                    { type: 'tone', start: 200, end: 10, dur: 0.3, wave: 'square', vol: 0.5, active: true },
-                    { type: 'noise', dur: 0.2, vol: 0.4, filter: 3000, active: true }
-                ]
-            },
-            {
-                id: 'exp_3', name: 'Explosion 3 - Distant', desc: 'Muffled low rumble.',
-                layers: [{ type: 'noise', dur: 0.8, vol: 0.8, filter: 400, active: true }]
-            },
-            {
-                id: 'exp_4', name: 'Explosion 4 - Sharp', desc: 'High impact grenade.',
-                layers: [
-                    { type: 'noise', dur: 0.2, vol: 0.8, filter: 5000, active: true },
-                    { type: 'tone', start: 300, end: 50, dur: 0.2, wave: 'sawtooth', vol: 0.4, active: true }
-                ]
-            },
-            {
-                id: 'exp_5', name: 'Explosion 5 - Implosion', desc: 'Reverse-like suction sound.',
-                layers: [
-                    { type: 'tone', start: 50, end: 10, dur: 0.5, wave: 'sine', vol: 0.8, active: true },
-                    { type: 'noise', dur: 0.3, vol: 0.3, filter: 800, active: true }
-                ]
-            },
-
-            // --- HOOK LAUNCH VARIATIONS ---
-            {
-                id: 'hook_l_1', name: 'Hook Launch 1 - Zip', desc: 'Fast rope zip.',
-                layers: [{ type: 'tone', start: 600, end: 1200, dur: 0.15, wave: 'triangle', vol: 0.3, active: true }]
-            },
-            {
-                id: 'hook_l_2', name: 'Hook Launch 2 - Mech', desc: 'Mechanical spring release.',
-                layers: [
-                    { type: 'tone', start: 200, end: 400, dur: 0.1, wave: 'sawtooth', vol: 0.3, active: true },
-                    { type: 'noise', dur: 0.05, vol: 0.2, filter: 3000, active: true }
-                ]
-            },
-            {
-                id: 'hook_l_3', name: 'Hook Launch 3 - Air', desc: 'Pneumatic compressed air.',
-                layers: [{ type: 'noise', dur: 0.15, vol: 0.5, filter: 2000, active: true }]
-            },
-            {
-                id: 'hook_l_4', name: 'Hook Launch 4 - Magic', desc: 'Ethereal grapple.',
-                layers: [{ type: 'tone', start: 800, end: 1600, dur: 0.2, wave: 'sine', vol: 0.3, active: true }]
-            },
-            {
-                id: 'hook_l_5', name: 'Hook Launch 5 - Heavy', desc: 'Heavy chain throw.',
-                layers: [
-                    { type: 'tone', start: 100, end: 300, dur: 0.2, wave: 'square', vol: 0.3, active: true },
-                    { type: 'noise', dur: 0.2, vol: 0.2, filter: 1000, active: true }
-                ]
-            },
-
-            // --- HOOK ATTACH VARIATIONS ---
-            {
-                id: 'hook_a_1', name: 'Hook Attach 1 - Clink', desc: 'Metal on metal.',
-                layers: [{ type: 'tone', start: 2000, end: 1000, dur: 0.08, wave: 'sine', vol: 0.4, active: true }]
-            },
-            {
-                id: 'hook_a_2', name: 'Hook Attach 2 - Thud', desc: 'Hook hitting wood/dirt.',
-                layers: [
-                    { type: 'noise', dur: 0.1, vol: 0.5, filter: 600, active: true },
-                    { type: 'tone', start: 100, end: 50, dur: 0.1, wave: 'sine', vol: 0.3, active: true }
-                ]
-            },
-            {
-                id: 'hook_a_3', name: 'Hook Attach 3 - Latch', desc: 'Mechanical locking click.',
-                layers: [
-                    { type: 'tone', start: 1500, end: 1500, dur: 0.03, wave: 'square', vol: 0.3, active: true },
-                    { type: 'tone', start: 1000, end: 1000, dur: 0.03, wave: 'square', vol: 0.3, active: true }
-                ]
-            },
-            {
-                id: 'hook_a_4', name: 'Hook Attach 4 - Dig', desc: 'Sharp digging sound.',
-                layers: [{ type: 'tone', start: 400, end: 100, dur: 0.1, wave: 'sawtooth', vol: 0.4, active: true }]
-            },
-            {
-                id: 'hook_a_5', name: 'Hook Attach 5 - Mag', desc: 'Magnetic lock.',
-                layers: [
-                    { type: 'tone', start: 500, end: 500, dur: 0.15, wave: 'sawtooth', vol: 0.2, active: true },
-                    { type: 'tone', start: 2000, end: 100, dur: 0.1, wave: 'sine', vol: 0.3, active: true }
-                ]
-            }
-        ];
-        this.selectedId = this.sounds[0].id;
-    }
-
-    // --- DATA MANAGEMENT ---
-
-    addNewSound() {
-        const id = 'sound_' + Date.now();
-        this.sounds.push({
-            id: id,
-            name: 'New Sound',
-            desc: 'Description...',
-            layers: [{ type: 'tone', start: 440, end: 220, dur: 0.2, wave: 'sine', vol: 0.5, active: true }]
-        });
-        this.selectedId = id;
-        this.stopLoop();
-        this.renderList();
-        this.renderEditor();
-        setTimeout(() => {
-            const list = document.getElementById('soundList');
-            list.scrollTop = list.scrollHeight;
-        }, 50);
-    }
-
-    duplicateSound() {
-        if (!this.selectedId) return;
-        const original = this.sounds.find(s => s.id === this.selectedId);
-        if (!original) return;
-
-        // Deep copy
-        const copy = JSON.parse(JSON.stringify(original));
-        copy.id = 'sound_' + Date.now();
-        copy.name = copy.name + ' (Copy)';
-        
-        this.sounds.push(copy);
-        this.selectedId = copy.id;
-        this.stopLoop();
-        this.renderList();
-        this.renderEditor();
-        
-        setTimeout(() => {
-            const list = document.getElementById('soundList');
-            list.scrollTop = list.scrollHeight;
-        }, 50);
-    }
-
-    deleteCurrentSound() {
-        if (!this.selectedId) return;
-        if (!confirm('Delete currently selected sound?')) return;
-        
-        this.stopLoop();
-        this.sounds = this.sounds.filter(s => s.id !== this.selectedId);
-        this.selectedId = this.sounds.length ? this.sounds[0].id : null;
-        this.renderList();
-        this.renderEditor();
-    }
-
-    addLayer(type) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-
-        if (type === 'tone') {
-            sound.layers.push({ type: 'tone', start: 440, end: 220, dur: 0.2, wave: 'sine', vol: 0.5, active: true });
-        } else {
-            sound.layers.push({ type: 'noise', dur: 0.2, vol: 0.5, filter: 1000, active: true });
-        }
-        this.renderEditor();
-    }
-
-    removeLayer(index) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound) {
-            sound.layers.splice(index, 1);
-            this.renderEditor();
-        }
-    }
-
-    importLayers() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-
-        const textarea = document.getElementById('layerDataInput');
-        if (!textarea) return;
-
-        const text = textarea.value;
-        const lines = text.split('\n');
-        let addedCount = 0;
-
-        lines.forEach(line => {
-            line = line.trim();
-            if (!line) return;
-            try {
-                const layer = JSON.parse(line);
-                // Basic validation
-                if (layer.type && (layer.type === 'tone' || layer.type === 'noise')) {
-                    layer.active = true; // Ensure imported layers are active
-                    sound.layers.push(layer);
-                    addedCount++;
-                }
-            } catch (e) {
-                console.log('Skipping invalid line');
-            }
-        });
-
-        if (addedCount > 0) {
-            this.renderEditor();
-            alert(`Imported ${addedCount} layers.`);
-        } else {
-            alert('No valid layer data found to import.');
-        }
-    }
-
-    updateSoundProp(key, value) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound) sound[key] = value;
-        if (key === 'name') this.renderList(); 
-        this.generateCode();
-    }
-
-    updateLayer(index, key, value) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound && sound.layers[index]) {
-            if (['start', 'end', 'dur', 'vol', 'filter'].includes(key)) value = parseFloat(value);
-            sound.layers[index][key] = value;
-            this.generateCode();
-            this.updateLayerDataBox();
-            
-            // Re-render if active state changed to update visual style
-            if (key === 'active') this.renderEditor();
-        }
-    }
-
-    // --- PLAYBACK & LOOP ---
-
-    playSound() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-        
-        this.audio.resume();
-
-        sound.layers.forEach(l => {
-            // Only play if active (undefined is treated as true for legacy support)
-            if (l.active !== false) {
-                if (l.type === 'tone') {
-                    this.audio.playTone(l.start, l.end, l.dur, l.wave, l.vol);
-                } else {
-                    this.audio.playNoise(l.dur, l.vol, l.filter);
-                }
-            }
-        });
-    }
-
-    toggleLoop() {
-        if (this.isLooping) {
-            this.stopLoop();
-        } else {
-            this.startLoop();
-        }
-        this.renderEditor(); // Update button state
-    }
-
-    startLoop() {
-        if (this.isLooping) return;
-        this.isLooping = true;
-        this.playSound(); // Play immediately
-        this.loopTimer = setInterval(() => {
-            this.playSound();
-        }, this.loopInterval);
-    }
-
-    stopLoop() {
-        this.isLooping = false;
-        if (this.loopTimer) {
-            clearInterval(this.loopTimer);
-            this.loopTimer = null;
-        }
-    }
-
-    // Logarithmic scale helpers
-    // Slider 0-1000 -> Value 20-1000
-    getLogValue(position) {
-        const minp = 0;
-        const maxp = 1000;
-        const minv = Math.log(20);
-        const maxv = Math.log(1000);
-        const scale = (maxv - minv) / (maxp - minp);
-        return Math.exp(minv + scale * (position - minp));
-    }
-
-    getLogPosition(value) {
-        const minp = 0;
-        const maxp = 1000;
-        const minv = Math.log(20);
-        const maxv = Math.log(1000);
-        const scale = (maxv - minv) / (maxp - minp);
-        return (Math.log(value) - minv) / scale + minp;
-    }
-
-    updateLoopInterval(sliderVal) {
-        const ms = this.getLogValue(sliderVal);
-        this.loopInterval = Math.round(ms);
-        
-        // Update text
-        const display = document.getElementById('loopVal');
-        if(display) display.innerText = this.loopInterval;
-
-        // If currently looping, restart interval with new time
-        if (this.isLooping) {
-            clearInterval(this.loopTimer);
-            this.loopTimer = setInterval(() => {
-                this.playSound();
-            }, this.loopInterval);
-        }
-    }
-
-    // --- CODE GEN ---
-
-    generateCode() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-
-        const codeEl = document.getElementById('codeOutput');
-        if (!codeEl) return;
-
-        let fnName = sound.name.replace(/[^a-zA-Z0-9]/g, '');
-        if (!fnName) fnName = 'mySound';
-        fnName = fnName.charAt(0).toLowerCase() + fnName.slice(1);
-
-        let code = `    ${fnName}(x) {\n`;
-        sound.layers.forEach(l => {
-            // Only generate code for active layers
-            if (l.active !== false) {
-                if (l.type === 'tone') {
-                    code += `        this.playTone(${l.start}, ${l.end}, ${l.dur}, '${l.wave}', x, ${l.vol});\n`;
-                } else {
-                    code += `        this.playNoise(${l.dur}, x, ${l.vol}, ${l.filter});\n`;
-                }
-            }
-        });
-        code += `    }`;
-
-        codeEl.innerText = code;
-    }
-
-    updateLayerDataBox() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        const box = document.getElementById('layerDataInput');
-        if (sound && box) {
-            const lines = sound.layers.map(l => JSON.stringify(l));
-            box.value = lines.join('\n');
-        }
-    }
-
-    copyCode() {
-        const code = document.getElementById('codeOutput').innerText;
-        navigator.clipboard.writeText(code).then(() => alert('Code copied!'));
-    }
-
-    // --- IO ---
-
-    saveLibrary() {
-        const data = JSON.stringify(this.sounds, null, 2);
-        const blob = new Blob([data], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'game_sounds.json';
-        a.click();
-    }
-
-    loadLibrary(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                this.sounds = JSON.parse(e.target.result);
-                // Если в файле нет ID (старый формат), генерируем их, но тут у нас есть
-                this.selectedId = this.sounds.length ? this.sounds[0].id : null;
-                this.collapsedGroups.clear();
-                this.stopLoop();
-                this.renderList();
-                this.renderEditor();
-                // Визуальное подтверждение
-                console.log("Library loaded successfully");
-            } catch(err) { 
-                alert('Invalid JSON structure'); 
-            }
-        };
-        reader.readAsText(file);
-        
-        input.value = ''; 
-    }
-
-    resetLibrary() {
-        if(confirm("Reset to defaults? All unsaved changes will be lost.")) {
-            this.stopLoop();
-            this.loadDefaults();
-            this.collapsedGroups.clear();
-            this.renderList();
-            this.renderEditor();
-        }
-    }
-
-    // --- RENDERING ---
-
-    renderList() {
-        const list = document.getElementById('soundList');
-        list.innerHTML = '';
-        
-        const groups = {};
-        this.sounds.forEach(s => {
-            const prefix = s.name.split(' ')[0];
-            if (!groups[prefix]) groups[prefix] = [];
-            groups[prefix].push(s);
-        });
-
-        Object.keys(groups).forEach(prefix => {
-            const header = document.createElement('div');
-            const isCollapsed = this.collapsedGroups.has(prefix);
-            header.className = `category-header ${isCollapsed ? 'collapsed' : ''}`;
-            header.innerHTML = `<span class="category-arrow">▼</span> ${prefix}`;
-            
-            header.onclick = () => {
-                if (isCollapsed) this.collapsedGroups.delete(prefix);
-                else this.collapsedGroups.add(prefix);
-                this.renderList();
-            };
-            list.appendChild(header);
-
-            if (!isCollapsed) {
-                groups[prefix].forEach(s => {
-                    const el = document.createElement('div');
-                    el.className = `sound-item ${s.id === this.selectedId ? 'active' : ''}`;
-                    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.innerText = s.name;
-                    el.appendChild(nameSpan);
-
-                    const controls = document.createElement('div');
-                    controls.className = 'item-controls';
-
-                    const playBtn = document.createElement('button');
-                    playBtn.className = 'btn btn-green btn-sm';
-                    playBtn.innerText = '▶';
-                    playBtn.title = 'Play Once';
-                    playBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (this.selectedId !== s.id) {
-                            this.stopLoop();
-                            this.selectedId = s.id;
-                            this.renderList();
-                            this.renderEditor();
-                        }
-                        this.playSound();
-                    };
-                    controls.appendChild(playBtn);
-
-                    el.appendChild(controls);
-
-                    el.onclick = () => {
-                        if (this.selectedId !== s.id) {
-                            this.stopLoop();
-                            this.selectedId = s.id;
-                            this.renderList();
-                            this.renderEditor();
-                        }
-                    };
-                    list.appendChild(el);
-                });
-            }
-        });
-    }
-
-    renderEditor() {
-        const container = document.getElementById('editor');
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-
-        if (!sound) {
-            container.innerHTML = '<div style="text-align:center; margin-top:50px; color:#7f8c8d;">Select or Create a Sound</div>';
-            return;
-        }
-
-        let layersHtml = '';
-        sound.layers.forEach((l, idx) => {
-            const isActive = l.active !== false;
-            const activeClass = isActive ? '' : 'disabled';
-            const checked = isActive ? 'checked' : '';
-
-            if (l.type === 'tone') {
-                layersHtml += `
-                <div class="layer-card type-tone ${activeClass}">
-                    <div class="layer-header">
-                        <span>TONE LAYER ${idx+1}</span>
-                        <div class="layer-actions">
-                            <label class="active-toggle">
-                                <input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE
-                            </label>
-                            <button class="btn btn-red btn-sm" onclick="app.removeLayer(${idx})">REMOVE</button>
-                        </div>
-                    </div>
-                    <div class="layer-controls">
-                        <div class="control-group">
-                            <label>Waveform</label>
-                            <select onchange="app.updateLayer(${idx}, 'wave', this.value)">
-                                <option value="sine" ${l.wave==='sine'?'selected':''}>Sine</option>
-                                <option value="square" ${l.wave==='square'?'selected':''}>Square</option>
-                                <option value="sawtooth" ${l.wave==='sawtooth'?'selected':''}>Sawtooth</option>
-                                <option value="triangle" ${l.wave==='triangle'?'selected':''}>Triangle</option>
-                            </select>
-                        </div>
-                        <div class="control-group">
-                            <label>Start Freq (Hz) <span class="val-display">${l.start}</span></label>
-                            <input type="range" min="50" max="3000" step="10" value="${l.start}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'start', this.value)">
-                        </div>
-                        <div class="control-group">
-                            <label>End Freq (Hz) <span class="val-display">${l.end}</span></label>
-                            <input type="range" min="10" max="3000" step="10" value="${l.end}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'end', this.value)">
-                        </div>
-                        <div class="control-group">
-                            <label>Duration (s) <span class="val-display">${l.dur}</span></label>
-                            <input type="range" min="0.01" max="1.0" step="0.01" value="${l.dur}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'dur', this.value)">
-                        </div>
-                        <div class="control-group">
-                            <label>Volume <span class="val-display">${l.vol}</span></label>
-                            <input type="range" min="0" max="1" step="0.05" value="${l.vol}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'vol', this.value)">
-                        </div>
-                    </div>
-                </div>`;
-            } else {
-                layersHtml += `
-                <div class="layer-card type-noise ${activeClass}">
-                    <div class="layer-header">
-                        <span>NOISE LAYER ${idx+1}</span>
-                        <div class="layer-actions">
-                            <label class="active-toggle">
-                                <input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE
-                            </label>
-                            <button class="btn btn-red btn-sm" onclick="app.removeLayer(${idx})">REMOVE</button>
-                        </div>
-                    </div>
-                    <div class="layer-controls">
-                        <div class="control-group">
-                            <label>Filter Freq (Hz) <span class="val-display">${l.filter}</span></label>
-                            <input type="range" min="100" max="8000" step="100" value="${l.filter}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filter', this.value)">
-                        </div>
-                        <div class="control-group">
-                            <label>Duration (s) <span class="val-display">${l.dur}</span></label>
-                            <input type="range" min="0.01" max="1.0" step="0.01" value="${l.dur}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'dur', this.value)">
-                        </div>
-                        <div class="control-group">
-                            <label>Volume <span class="val-display">${l.vol}</span></label>
-                            <input type="range" min="0" max="1" step="0.05" value="${l.vol}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'vol', this.value)">
-                        </div>
-                    </div>
-                </div>`;
-            }
-        });
-
-        const playBtnText = this.isLooping ? 'STOP<br>LOOP' : 'START<br>LOOP';
-        const playBtnClass = this.isLooping ? 'play-btn playing' : 'play-btn';
-        
-        // Calculate slider position from current log value
-        const sliderPos = this.getLogPosition(this.loopInterval);
-
-        container.innerHTML = `
-            <div class="editor-header">
-                <div class="header-inputs">
-                    <input type="text" value="${sound.name}" oninput="app.updateSoundProp('name', this.value)">
-                    <textarea placeholder="Description..." oninput="app.updateSoundProp('desc', this.value)">${sound.desc}</textarea>
-                </div>
-                <div class="play-controls">
-                    <button class="${playBtnClass}" onclick="app.toggleLoop()">${playBtnText}</button>
-                    <div class="loop-slider-container">
-                        <label>Loop Interval</label>
-                        <span id="loopVal" class="loop-val-display">${Math.round(this.loopInterval)}</span> <span style="font-size:10px;color:#777">ms</span>
-                        <input type="range" min="0" max="1000" step="1" value="${sliderPos}" oninput="app.updateLoopInterval(this.value)">
-                    </div>
-                </div>
-            </div>
-
-            <div class="data-exchange">
-                <h4>Layer Data Exchange (Copy/Paste Lines)</h4>
-                <textarea id="layerDataInput" placeholder="Paste layer data here..."></textarea>
-                <div class="data-exchange-controls">
-                    <button class="btn btn-blue btn-sm" onclick="app.importLayers()">IMPORT LAYERS</button>
-                </div>
-            </div>
-
-            <div class="layers-container">
-                ${layersHtml}
-            </div>
-
-            <div class="add-buttons">
-                <button class="btn btn-blue" onclick="app.addLayer('tone')">+ ADD TONE</button>
-                <button class="btn btn-orange" onclick="app.addLayer('noise')">+ ADD NOISE</button>
-            </div>
-
-            <div class="code-block">
-                <button class="btn btn-gray btn-sm copy-btn" onclick="app.copyCode()">COPY JS</button>
-                <div id="codeOutput"></div>
-            </div>
-        `;
-
-        this.generateCode();
-        this.updateLayerDataBox();
-    }
-}
-
-const app = new App();
-
-</script>
 </body>
 </html>
