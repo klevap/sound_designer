@@ -7,8 +7,11 @@ class AudioEngine {
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.value = 0.3;
         this.masterGain.connect(this.ctx.destination);
-        this.noiseBuffer = this.createNoiseBuffer();
-        this.waveCache = {}; 
+        
+        // Pre-generate noise for live playback
+        this.liveNoiseBuffer = this.createNoiseBuffer(this.ctx);
+        
+        // Caches
         this.shaperCache = {};
     }
 
@@ -16,19 +19,17 @@ class AudioEngine {
         if (this.ctx.state === 'suspended') this.ctx.resume();
     }
 
-    createNoiseBuffer() {
-        const bufferSize = this.ctx.sampleRate * 2; 
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    createNoiseBuffer(ctx) {
+        const bufferSize = ctx.sampleRate * 2; 
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         return buffer;
     }
 
-    // --- CUSTOM WAVE GENERATORS ---
+    // --- CUSTOM WAVE GENERATORS (Context Agnostic) ---
 
-    getTrapezoidWave(sharpness) {
-        const key = `trap_${sharpness}`;
-        if (this.waveCache[key]) return this.waveCache[key];
+    getTrapezoidWave(ctx, sharpness) {
         const numCoeffs = 64;
         const real = new Float32Array(numCoeffs);
         const imag = new Float32Array(numCoeffs);
@@ -37,24 +38,16 @@ class AudioEngine {
             const tri = 1 / (i * i);
             imag[i] = sq * (1 - sharpness) + tri * sharpness;
         }
-        const wave = this.ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
+        return ctx.createPeriodicWave(real, imag);
     }
 
-    getOrganWave() {
-        const key = `organ`;
-        if (this.waveCache[key]) return this.waveCache[key];
+    getOrganWave(ctx) {
         const real = new Float32Array([0, 0, 0, 0, 0, 0]); 
         const imag = new Float32Array([0, 1, 0.8, 0.6, 0.4, 0.2]); 
-        const wave = this.ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
+        return ctx.createPeriodicWave(real, imag);
     }
 
-    getMetallicWave() {
-        const key = `metal`;
-        if (this.waveCache[key]) return this.waveCache[key];
+    getMetallicWave(ctx) {
         const num = 32;
         const real = new Float32Array(num);
         const imag = new Float32Array(num);
@@ -62,46 +55,26 @@ class AudioEngine {
             if (i % 2 !== 0 && i > 5) imag[i] = 0.5;
             if (i === 1) imag[i] = 1;
         }
-        const wave = this.ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
+        return ctx.createPeriodicWave(real, imag);
     }
 
-    // NEW: Pulse 25% (NES Style)
-    getPulseWave() {
-        const key = `pulse25`;
-        if (this.waveCache[key]) return this.waveCache[key];
-        
+    getPulseWave(ctx) {
         const num = 64;
         const real = new Float32Array(num);
         const imag = new Float32Array(num);
-        
-        // Fourier series for 25% duty cycle pulse
         for (let i = 1; i < num; i++) {
-            // Formula: (2 / (n * PI)) * sin(n * PI * duty)
             imag[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * 0.25);
         }
-
-        const wave = this.ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
+        return ctx.createPeriodicWave(real, imag);
     }
 
-    // NEW: Bassoon (Heavy Bass)
-    getBassoonWave() {
-        const key = `bassoon`;
-        if (this.waveCache[key]) return this.waveCache[key];
-        
-        // Strong fundamental, strong 3rd, specific higher harmonics
+    getBassoonWave(ctx) {
         const real = new Float32Array(10).fill(0);
         const imag = new Float32Array([0, 1.0, 0.2, 0.8, 0.1, 0.4, 0.1, 0.2, 0.0, 0.1]);
-        
-        const wave = this.ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
+        return ctx.createPeriodicWave(real, imag);
     }
 
-    // --- WAVESHAPERS ---
+    // --- WAVESHAPERS (Cached, Context Agnostic) ---
 
     getPowerCurve(amount) {
         const key = `pow_${amount}`;
@@ -133,52 +106,36 @@ class AudioEngine {
         return curve;
     }
 
-    // NEW: Wavefolder (Sci-Fi Distortion)
     getFoldbackCurve(amount) {
         const key = `fold_${amount}`;
         if (this.shaperCache[key]) return this.shaperCache[key];
-        
-        const n_samples = 1024; // Higher resolution for folding
+        const n_samples = 1024;
         const curve = new Float32Array(n_samples);
-        
-        // Amount 0..1 maps to Multiplier 1..6
-        // This creates a sine-folding effect. 
-        // Low amount = linear-ish. High amount = multiple folds.
         const drive = 1 + (amount * 5);
-
         for (let i = 0; i < n_samples; ++i ) {
             let x = i * 2 / n_samples - 1;
-            // Math.sin(x * drive) creates the folding effect
             curve[i] = Math.sin(x * drive * (Math.PI / 2));
         }
         this.shaperCache[key] = curve;
         return curve;
     }
 
-    // --- PLAYBACK ---
+    // --- SCHEDULING LOGIC (Works for Live & Offline) ---
 
-    playTone(params) {
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+    scheduleTone(ctx, destination, params) {
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         
         // 1. Setup Waveform
         if (['sine', 'square', 'sawtooth', 'triangle'].includes(params.wave)) {
             osc.type = params.wave;
         } 
-        // Advanced Periodic
-        else if (params.wave === 'trapezoid') {
-            osc.setPeriodicWave(this.getTrapezoidWave(params.shapeParam));
-        } else if (params.wave === 'organ') {
-            osc.setPeriodicWave(this.getOrganWave());
-        } else if (params.wave === 'metal') {
-            osc.setPeriodicWave(this.getMetallicWave());
-        } else if (params.wave === 'pulse25') {
-            osc.setPeriodicWave(this.getPulseWave());
-        } else if (params.wave === 'bassoon') {
-            osc.setPeriodicWave(this.getBassoonWave());
-        }
-        // Shapers (Base is Sine)
+        else if (params.wave === 'trapezoid') osc.setPeriodicWave(this.getTrapezoidWave(ctx, params.shapeParam));
+        else if (params.wave === 'organ') osc.setPeriodicWave(this.getOrganWave(ctx));
+        else if (params.wave === 'metal') osc.setPeriodicWave(this.getMetallicWave(ctx));
+        else if (params.wave === 'pulse25') osc.setPeriodicWave(this.getPulseWave(ctx));
+        else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
         else if (['powersine', 'bitcrush', 'foldback'].includes(params.wave)) {
             osc.type = 'sine';
         }
@@ -189,8 +146,8 @@ class AudioEngine {
 
         // 3. FM
         if (params.fmActive) {
-            const modulator = this.ctx.createOscillator();
-            const modGain = this.ctx.createGain();
+            const modulator = ctx.createOscillator();
+            const modGain = ctx.createGain();
             modulator.frequency.setValueAtTime(params.start * params.fmRatio, t);
             modulator.frequency.exponentialRampToValueAtTime(params.end * params.fmRatio, t + params.dur);
             modGain.gain.value = params.fmDepth;
@@ -200,21 +157,20 @@ class AudioEngine {
             modulator.stop(t + params.dur);
         }
 
-        // 4. Routing (Shaper or Direct)
+        // 4. Routing
         let outputNode = osc;
-
         if (params.wave === 'powersine') {
-            const shaper = this.ctx.createWaveShaper();
+            const shaper = ctx.createWaveShaper();
             shaper.curve = this.getPowerCurve(params.shapeParam);
             osc.connect(shaper);
             outputNode = shaper;
         } else if (params.wave === 'bitcrush') {
-            const shaper = this.ctx.createWaveShaper();
+            const shaper = ctx.createWaveShaper();
             shaper.curve = this.getBitCrushCurve(params.shapeParam);
             osc.connect(shaper);
             outputNode = shaper;
         } else if (params.wave === 'foldback') {
-            const shaper = this.ctx.createWaveShaper();
+            const shaper = ctx.createWaveShaper();
             shaper.curve = this.getFoldbackCurve(params.shapeParam);
             osc.connect(shaper);
             outputNode = shaper;
@@ -225,28 +181,138 @@ class AudioEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
 
         outputNode.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(destination);
 
         osc.start();
         osc.stop(t + params.dur);
     }
 
-    playNoise(duration, vol, filterFreq) {
-        const t = this.ctx.currentTime;
-        const src = this.ctx.createBufferSource();
-        src.buffer = this.noiseBuffer;
-        const filter = this.ctx.createBiquadFilter();
+    scheduleNoise(ctx, destination, params, noiseBuffer) {
+        const t = ctx.currentTime;
+        const src = ctx.createBufferSource();
+        src.buffer = noiseBuffer;
+        const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(filterFreq, t);
-        filter.frequency.exponentialRampToValueAtTime(10, t + duration);
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(vol, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        filter.frequency.setValueAtTime(params.filter, t);
+        filter.frequency.exponentialRampToValueAtTime(10, t + params.dur);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(params.vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
         src.connect(filter);
         filter.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(destination);
         src.start();
-        src.stop(t + duration);
+        src.stop(t + params.dur);
+    }
+
+    // --- PUBLIC PLAYBACK ---
+
+    playTone(params) {
+        this.scheduleTone(this.ctx, this.masterGain, params);
+    }
+
+    playNoise(params) {
+        this.scheduleNoise(this.ctx, this.masterGain, params, this.liveNoiseBuffer);
+    }
+
+    // --- EXPORT TO WAV ---
+
+    async renderAndDownload(sound) {
+        // 1. Calculate total duration
+        let maxDur = 0;
+        sound.layers.forEach(l => {
+            if (l.active !== false && l.dur > maxDur) maxDur = l.dur;
+        });
+        if (maxDur === 0) return;
+
+        // Add a small tail for release
+        const renderDur = maxDur + 0.1;
+        const sampleRate = 44100;
+
+        // 2. Create Offline Context
+        const offlineCtx = new OfflineAudioContext(1, sampleRate * renderDur, sampleRate);
+        
+        // 3. Create a noise buffer specifically for this context (cannot share buffers across contexts easily)
+        const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
+
+        // 4. Schedule all layers
+        sound.layers.forEach(l => {
+            if (l.active !== false) {
+                if (l.type === 'tone') {
+                    this.scheduleTone(offlineCtx, offlineCtx.destination, l);
+                } else {
+                    this.scheduleNoise(offlineCtx, offlineCtx.destination, l, offlineNoiseBuffer);
+                }
+            }
+        });
+
+        // 5. Render
+        const renderedBuffer = await offlineCtx.startRendering();
+
+        // 6. Encode to WAV
+        const wavBlob = this.bufferToWav(renderedBuffer, renderDur * sampleRate);
+        
+        // 7. Download
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (sound.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + '.wav';
+        a.click();
+    }
+
+    bufferToWav(abuffer, len) {
+        const numOfChan = abuffer.numberOfChannels;
+        const length = len * numOfChan * 2 + 44;
+        const buffer = new ArrayBuffer(length);
+        const view = new DataView(buffer);
+        const channels = [];
+        let i;
+        let sample;
+        let offset = 0;
+        let pos = 0;
+
+        // write WAVE header
+        setUint32(0x46464952);                         // "RIFF"
+        setUint32(length - 8);                         // file length - 8
+        setUint32(0x45564157);                         // "WAVE"
+
+        setUint32(0x20746d66);                         // "fmt " chunk
+        setUint32(16);                                 // length = 16
+        setUint16(1);                                  // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(abuffer.sampleRate);
+        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2);                      // block-align
+        setUint16(16);                                 // 16-bit (hardcoded in this encoder)
+
+        setUint32(0x61746164);                         // "data" - chunk
+        setUint32(length - pos - 4);                   // chunk length
+
+        // write interleaved data
+        for(i = 0; i < abuffer.numberOfChannels; i++)
+            channels.push(abuffer.getChannelData(i));
+
+        while(pos < length) {
+            for(i = 0; i < numOfChan; i++) {             // interleave channels
+                sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
+                view.setInt16(pos, sample, true);          // write 16-bit sample
+                pos += 2;
+            }
+            offset++;                                     // next source sample
+        }
+
+        return new Blob([buffer], {type: "audio/wav"});
+
+        function setUint16(data) {
+            view.setUint16(pos, data, true);
+            pos += 2;
+        }
+
+        function setUint32(data) {
+            view.setUint32(pos, data, true);
+            pos += 4;
+        }
     }
 }
 
@@ -402,7 +468,7 @@ class App {
         }
     }
 
-    // --- PLAYBACK ---
+    // --- PLAYBACK & EXPORT ---
     playSound(specificId = null) {
         const idToPlay = specificId || this.selectedId;
         const sound = this.sounds.find(s => s.id === idToPlay);
@@ -412,9 +478,15 @@ class App {
         sound.layers.forEach(l => {
             if (l.active !== false) {
                 if (l.type === 'tone') this.audio.playTone(l);
-                else this.audio.playNoise(l.dur, l.vol, l.filter);
+                else this.audio.playNoise(l);
             }
         });
+    }
+
+    downloadWav() {
+        const sound = this.sounds.find(s => s.id === this.selectedId);
+        if (!sound) return;
+        this.audio.renderAndDownload(sound);
     }
 
     toggleLoop() {
@@ -541,13 +613,12 @@ class App {
 
             if (l.type === 'tone') {
                 let shapeControl = '';
-                // Logic for showing the slider for new waveforms
                 if (['trapezoid', 'powersine', 'bitcrush', 'foldback'].includes(l.wave)) {
                     let label = 'Param';
                     if (l.wave === 'trapezoid') label = 'Sharpness';
                     if (l.wave === 'powersine') label = 'Power';
                     if (l.wave === 'bitcrush') label = 'Crush';
-                    if (l.wave === 'foldback') label = 'Drive'; // New label
+                    if (l.wave === 'foldback') label = 'Drive';
                     
                     shapeControl = `
                         <div class="control-group">
@@ -669,6 +740,7 @@ class App {
                 </div>
                 <div class="play-controls">
                     <button class="play-btn ${this.isLooping?'playing':''}" onclick="app.toggleLoop()">${this.isLooping?'STOP':'PLAY<br>LOOP'}</button>
+                    <button class="download-btn" onclick="app.downloadWav()">DOWNLOAD WAV</button>
                     <div style="text-align:center; margin-top:5px;">
                         <span id="loopVal" style="color:var(--accent); font-weight:bold;">${this.loopInterval}</span> ms
                         <input type="range" min="50" max="1000" step="10" value="${this.loopInterval}" style="width:100%" oninput="app.updateLoopInterval(this.value)">

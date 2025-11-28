@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Sound Designer: Modular</title>
+    <title>Sound Designer</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -175,6 +175,19 @@
         .play-btn:hover { background: #27ae60; }
         .play-btn.playing { background: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
 
+        .download-btn {
+            width: 100%;
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .download-btn:hover { background: #d35400; }
+
         /* DATA EXCHANGE */
         .data-exchange {
             background: #1e272e;
@@ -329,8 +342,8 @@
         <button class="btn btn-green" onclick="app.addNewSound()">+ NEW</button>
         <button class="btn btn-gray" onclick="app.duplicateSound()">DUPLICATE</button>
         <button class="btn btn-red full-width" onclick="app.deleteCurrentSound()">DELETE SELECTED</button>
-        <button class="btn btn-gray" onclick="app.saveLibrary()">SAVE</button>
-        <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">LOAD</button>
+        <button class="btn btn-gray" onclick="app.saveLibrary()">SAVE LIB</button>
+        <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">LOAD LIB</button>
         <input type="file" id="fileInput" style="display:none" accept=".json" onchange="app.loadLibrary(this)">
         <button class="btn btn-red full-width" onclick="app.resetLibrary()">RESET DEFAULTS</button>
     </div>
