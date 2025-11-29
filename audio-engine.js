@@ -48,10 +48,20 @@ class AudioEngine {
     }
     getBassoonWave(ctx) { return ctx.createPeriodicWave(new Float32Array(10).fill(0), new Float32Array([0,1.0,0.2,0.8,0.1,0.4,0.1,0.2,0.0,0.1])); }
     
-    // NEW: Violin-like wave (Rich Sawtooth variation)
     getViolinWave(ctx) {
         const num = 32; const real = new Float32Array(num); const imag = new Float32Array(num);
-        for (let i = 1; i < num; i++) { imag[i] = 1 / (i * 0.8); } // Brighter than standard saw
+        for (let i = 1; i < num; i++) { imag[i] = 1 / (i * 0.8); }
+        return ctx.createPeriodicWave(real, imag);
+    }
+
+    // NEW: HyperSaw (1 / sqrt(n)) - Very bright and aggressive
+    getHyperSawWave(ctx) {
+        const num = 64; // More harmonics to emphasize the brightness
+        const real = new Float32Array(num); 
+        const imag = new Float32Array(num);
+        for (let i = 1; i < num; i++) { 
+            imag[i] = 1 / Math.sqrt(i); 
+        }
         return ctx.createPeriodicWave(real, imag);
     }
 
@@ -88,6 +98,7 @@ class AudioEngine {
         else if (params.wave === 'pulse25') osc.setPeriodicWave(this.getPulseWave(ctx));
         else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
         else if (params.wave === 'violin') osc.setPeriodicWave(this.getViolinWave(ctx));
+        else if (params.wave === 'hypersaw') osc.setPeriodicWave(this.getHyperSawWave(ctx));
         else osc.type = 'sine';
 
         osc.frequency.setValueAtTime(params.start, t);
@@ -115,20 +126,15 @@ class AudioEngine {
             osc.connect(shaper); outputNode = shaper;
         }
 
-        // VOLUME ENVELOPE LOGIC (Updated for Attack)
+        // VOLUME ENVELOPE
         const attack = params.attack !== undefined ? params.attack : 0.01;
         const release = 0.05;
         const sustainTime = Math.max(0, params.dur - attack - release);
 
         gain.gain.setValueAtTime(0, t);
-        
-        if (attack > 0) {
-            gain.gain.linearRampToValueAtTime(params.vol, t + attack);
-        } else {
-            gain.gain.setValueAtTime(params.vol, t);
-        }
+        if (attack > 0) gain.gain.linearRampToValueAtTime(params.vol, t + attack);
+        else gain.gain.setValueAtTime(params.vol, t);
 
-        // Sustain -> Release
         gain.gain.setValueAtTime(params.vol, t + attack + sustainTime);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
 
@@ -145,16 +151,13 @@ class AudioEngine {
         filter.frequency.setValueAtTime(params.filter, t);
         filter.frequency.exponentialRampToValueAtTime(10, t + params.dur);
         const gain = ctx.createGain();
-        
-        // Simple envelope for noise
         gain.gain.setValueAtTime(params.vol, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
-        
         src.connect(filter); filter.connect(gain); gain.connect(dest);
         src.start(t); src.stop(t + params.dur);
     }
 
-    // --- PLAYBACK ---
+    // --- PLAYBACK & EXPORT (Standard methods) ---
     playSound(soundDef, when = 0) {
         const t = when || this.ctx.currentTime;
         soundDef.layers.forEach(l => {
@@ -173,6 +176,7 @@ class AudioEngine {
             p.vol *= volumeScale;
             if (p.type === 'tone') {
                 p.start = freq; p.end = freq; p.dur = duration; 
+                // For HyperSaw, we might want to keep it raw, but for others we flatten
                 this.scheduleTone(this.ctx, this.masterGain, p, t);
             } else {
                 this.scheduleNoise(this.ctx, this.masterGain, p, this.liveNoiseBuffer, t);
@@ -180,7 +184,6 @@ class AudioEngine {
         });
     }
 
-    // --- SEQUENCER ---
     playMusic(melody, soundLibrary) {
         if (this.isPlayingMusic) this.stopMusic();
         this.currentMelody = melody;
@@ -229,27 +232,18 @@ class AudioEngine {
                     const vol = track.vol !== undefined ? track.vol : 1.0;
                     
                     if (freq) {
-                        // Tonal Note
                         sound.layers.forEach(l => {
                             if (l.active === false) return;
                             const p = { ...l }; p.vol *= vol;
                             if (p.type === 'tone') {
-                                // For musical notes, we usually want steady pitch unless it's a specific SFX
-                                // If the preset has start!=end (slide), we might want to keep it relative or flatten it.
-                                // Here we flatten it to the note frequency for musical consistency.
                                 p.start = freq; p.end = freq; 
-                                
-                                // Allow notes to be longer than step if needed, but default to step
-                                // If the sound has a very long defined duration (like a pad), use that, otherwise use step
                                 p.dur = Math.max(p.dur, stepDuration * 1.5); 
-                                
                                 this.scheduleTone(ctx, dest, p, time);
                             } else {
                                 this.scheduleNoise(ctx, dest, p, noiseBuf, time);
                             }
                         });
                     } else {
-                        // Percussion Hit (No pitch change)
                         sound.layers.forEach(l => {
                             if (l.active !== false) {
                                 const lp = {...l}; lp.vol *= vol;
@@ -263,52 +257,40 @@ class AudioEngine {
         });
     }
 
-    // --- EXPORT SOUND ---
     async renderSound(sound) {
         let maxDur = 0;
         sound.layers.forEach(l => { if (l.active !== false && l.dur > maxDur) maxDur = l.dur; });
         if (maxDur === 0) return;
-
-        const renderDur = maxDur + 0.5; // Extra tail
+        const renderDur = maxDur + 0.5;
         const sampleRate = 44100;
         const offlineCtx = new OfflineAudioContext(1, sampleRate * renderDur, sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
-
         sound.layers.forEach(l => {
             if (l.active !== false) {
                 if (l.type === 'tone') this.scheduleTone(offlineCtx, offlineCtx.destination, l, 0);
                 else this.scheduleNoise(offlineCtx, offlineCtx.destination, l, offlineNoiseBuffer, 0);
             }
         });
-
         const renderedBuffer = await offlineCtx.startRendering();
         return MusicUtils.bufferToWav(renderedBuffer, renderDur * sampleRate);
     }
 
-    // --- EXPORT MELODY ---
     async renderMelody(melody, soundLibrary) {
         this.soundLibrary = soundLibrary;
         this.currentMelody = melody;
-
         const bpm = melody.bpm;
         const stepTime = (60.0 / bpm) / 4;
-        
         let maxSteps = 0;
-        melody.tracks.forEach(t => {
-            if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length;
-        });
+        melody.tracks.forEach(t => { if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length; });
         if (maxSteps === 0) maxSteps = 16;
-
-        const duration = (maxSteps * stepTime) + 4.0; // Extra tail for reverb/release
+        const duration = (maxSteps * stepTime) + 4.0;
         const sampleRate = 44100;
         const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
-
         for (let step = 0; step < maxSteps; step++) {
             const time = step * stepTime;
             this.scheduleStep(step, time, stepTime, offlineCtx, offlineCtx.destination, offlineNoiseBuffer);
         }
-
         const renderedBuffer = await offlineCtx.startRendering();
         return MusicUtils.bufferToWav(renderedBuffer, duration * sampleRate);
     }

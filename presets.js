@@ -13,11 +13,41 @@ const _noise = (dur, vol, filter) => ({
 });
 
 const DEFAULT_SOUNDS = [
-    // --- MUSICAL INSTRUMENTS (NEW) ---
+    // --- HYPERSAW SPECIALS (NEW) ---
+    {
+        id: 'inst_hyper_lead', name: 'Inst - Lead - HyperSaw', desc: 'Aggressive, bright lead using 1/sqrt(n).',
+        layers: [
+            { ..._tone('hypersaw', 440, 440, 0.4, 0.4, 0.05) },
+            { ..._tone('hypersaw', 440, 440, 0.4, 0.2, 0.05), fmActive: true, fmRatio: 2.01, fmDepth: 20 } // Detuned layer
+        ]
+    },
+    {
+        id: 'inst_ice_pad', name: 'Inst - Pad - Ice World', desc: 'Cold, glassy atmosphere.',
+        layers: [
+            { ..._tone('hypersaw', 440, 440, 1.5, 0.3, 0.8) }, // Slow attack
+            { ..._tone('sine', 880, 880, 1.5, 0.2, 0.8), fmActive: true, fmRatio: 3.5, fmDepth: 100 } // Shimmer
+        ]
+    },
+    {
+        id: 'inst_glass_bell', name: 'Inst - Keys - Glass Bell', desc: 'Sharp, crystalline impact.',
+        layers: [
+            { ..._tone('hypersaw', 880, 880, 0.6, 0.5, 0.01) },
+            { ..._tone('triangle', 440, 440, 0.6, 0.3, 0.01) } // Body
+        ]
+    },
+    {
+        id: 'sfx_hyper_laser', name: 'SFX - Laser - Hyper', desc: 'High energy laser blast.',
+        layers: [
+            { ..._tone('hypersaw', 2000, 200, 0.2, 0.4, 0.01) },
+            _noise(0.1, 0.2, 5000)
+        ]
+    },
+
+    // --- MUSICAL INSTRUMENTS ---
     {
         id: 'inst_str_ens', name: 'Inst - Strings - Ensemble', desc: 'Slow attack string section.',
         layers: [
-            { ..._tone('violin', 440, 440, 0.8, 0.4, 0.4), fmActive: true, fmRatio: 1.01, fmDepth: 5 }, // Detuned
+            { ..._tone('violin', 440, 440, 0.8, 0.4, 0.4), fmActive: true, fmRatio: 1.01, fmDepth: 5 },
             { ..._tone('sawtooth', 440, 440, 0.8, 0.3, 0.4), fmActive: true, fmRatio: 0.99, fmDepth: 5 }
         ]
     },
@@ -32,7 +62,7 @@ const DEFAULT_SOUNDS = [
         id: 'inst_flute', name: 'Inst - Winds - Flute', desc: 'Breathy flute sound.',
         layers: [
             { ..._tone('triangle', 440, 440, 0.6, 0.5, 0.1) },
-            _noise(0.1, 0.1, 3000) // Breath attack
+            _noise(0.1, 0.1, 3000)
         ]
     },
     {
@@ -52,7 +82,7 @@ const DEFAULT_SOUNDS = [
         id: 'inst_organ', name: 'Inst - Keys - Church Organ', desc: 'Rich harmonic organ.',
         layers: [
             { ..._tone('organ', 440, 440, 0.8, 0.5, 0.1) },
-            { ..._tone('sine', 880, 880, 0.8, 0.2, 0.1) } // Octave up
+            { ..._tone('sine', 880, 880, 0.8, 0.2, 0.1) }
         ]
     },
     {
