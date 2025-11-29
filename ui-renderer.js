@@ -77,6 +77,7 @@ const UIRenderer = {
 
             if (l.type === 'tone') {
                 let shapeControl = '';
+                // Standard Shapers
                 if (['trapezoid', 'powersine', 'bitcrush', 'foldback'].includes(l.wave)) {
                     let label = 'Param';
                     if (l.wave === 'trapezoid') label = 'Sharpness';
@@ -85,6 +86,17 @@ const UIRenderer = {
                     if (l.wave === 'foldback') label = 'Drive';
                     shapeControl = `<div class="control-group"><label>${label} <span class="val-display">${l.shapeParam}</span></label><input type="range" min="0" max="1" step="0.05" value="${l.shapeParam}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'shapeParam', this.value)"></div>`;
                 }
+                
+                // UPDATED: HyperSaw Specific Controls
+                if (l.wave === 'hypersaw') {
+                    const odd = l.hyperOdd !== undefined ? l.hyperOdd : 0.5;
+                    const even = l.hyperEven !== undefined ? l.hyperEven : 0.5;
+                    shapeControl = `
+                        <div class="control-group"><label>Odd Harmonics (1/n^x) <span class="val-display">${odd}</span></label><input type="range" min="0.2" max="4.0" step="0.1" value="${odd}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'hyperOdd', this.value)"></div>
+                        <div class="control-group"><label>Even Harmonics (1/n^x) <span class="val-display">${even}</span></label><input type="range" min="0.2" max="4.0" step="0.1" value="${even}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'hyperEven', this.value)"></div>
+                    `;
+                }
+
                 const fmChecked = l.fmActive ? 'checked' : '';
                 const fmDisplay = l.fmActive ? 'grid' : 'none';
                 const attackVal = l.attack !== undefined ? l.attack : 0.01;
@@ -170,7 +182,6 @@ const UIRenderer = {
 
         let tracksHtml = melody.tracks.map((t, i) => {
             const isActive = t.active !== false;
-            // t.pattern is now a string, so we use it directly
             const patternVal = t.pattern; 
             
             return `

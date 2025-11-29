@@ -47,7 +47,7 @@ class App {
         const id = 'snd_' + Date.now();
         this.sounds.push({
             id: id, name: 'New - Category - Sound', desc: 'Description...',
-            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 }]
+            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5 }]
         });
         this.selectedSoundId = id;
         this.renderSoundList();
@@ -76,7 +76,7 @@ class App {
     addLayer(type) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (!s) return;
-        if (type === 'tone') s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 });
+        if (type === 'tone') s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5 });
         else s.layers.push({ type: 'noise', active: true, dur: 0.2, vol: 0.5, filter: 1000 });
         this.renderEditor();
     }
@@ -94,7 +94,8 @@ class App {
     updateLayer(idx, key, value) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (s && s.layers[idx]) {
-            if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack'].includes(key)) value = parseFloat(value);
+            // UPDATED: Added hyperOdd and hyperEven to float parsing
+            if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack', 'hyperOdd', 'hyperEven'].includes(key)) value = parseFloat(value);
             s.layers[idx][key] = value;
             if (key === 'active' || key === 'wave' || key === 'fmActive') this.renderEditor();
             else this.updateCodeOutput(s);
@@ -137,7 +138,6 @@ class App {
     // --- MELODY ACTIONS ---
     addNewMelody() {
         const id = 'mel_' + Date.now();
-        // Default pattern is now a string
         this.melodies.push({ id: id, name: 'New Melody', bpm: 120, tracks: [{ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: "C4 - C4 -" }] });
         this.selectedMelodyId = id;
         this.renderMelodyList();
@@ -165,7 +165,6 @@ class App {
 
     addTrack() {
         const m = this.melodies.find(x => x.id === this.selectedMelodyId);
-        // Default pattern is now a string
         if (m) { m.tracks.push({ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: "- - - -" }); this.renderEditor(); }
     }
 
@@ -189,13 +188,12 @@ class App {
         const m = this.melodies.find(x => x.id === this.selectedMelodyId);
         if (m && m.tracks[idx]) {
             if (key === 'pattern') {
-                // Store directly as string, just uppercase it
                 m.tracks[idx].pattern = value.toUpperCase();
             }
             else if (key === 'vol') m.tracks[idx].vol = parseFloat(value);
             else m.tracks[idx][key] = value;
             
-            if (key === 'active') this.renderEditor(); // Re-render to update UI state
+            if (key === 'active') this.renderEditor(); 
             this.updateCodeOutput(m);
         }
     }

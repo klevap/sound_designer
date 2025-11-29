@@ -7,6 +7,7 @@ class AudioEngine {
         
         this.liveNoiseBuffer = this.createNoiseBuffer(this.ctx);
         this.shaperCache = {};
+        this.waveCache = {}; // Cache for PeriodicWaves to avoid garbage collection churn
 
         // Sequencer State
         this.isPlayingMusic = false;
@@ -54,14 +55,26 @@ class AudioEngine {
         return ctx.createPeriodicWave(real, imag);
     }
 
-    getHyperSawWave(ctx) {
+    // UPDATED: HyperSaw with variable exponents for Odd/Even harmonics
+    getHyperSawWave(ctx, oddExp, evenExp) {
+        // Create a cache key based on parameters to avoid re-calculating identical waves
+        const key = `hypersaw_${oddExp.toFixed(2)}_${evenExp.toFixed(2)}`;
+        if (this.waveCache[key]) return this.waveCache[key];
+
         const num = 64; 
         const real = new Float32Array(num); 
         const imag = new Float32Array(num);
+        
         for (let i = 1; i < num; i++) { 
-            imag[i] = 1 / Math.sqrt(i); 
+            // Determine exponent based on whether harmonic is even or odd
+            const exp = (i % 2 === 0) ? evenExp : oddExp;
+            // Apply formula: 1 / n^x
+            imag[i] = 1 / Math.pow(i, exp);
         }
-        return ctx.createPeriodicWave(real, imag);
+        
+        const wave = ctx.createPeriodicWave(real, imag);
+        this.waveCache[key] = wave;
+        return wave;
     }
 
     getPowerCurve(amount) {
@@ -97,7 +110,12 @@ class AudioEngine {
         else if (params.wave === 'pulse25') osc.setPeriodicWave(this.getPulseWave(ctx));
         else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
         else if (params.wave === 'violin') osc.setPeriodicWave(this.getViolinWave(ctx));
-        else if (params.wave === 'hypersaw') osc.setPeriodicWave(this.getHyperSawWave(ctx));
+        else if (params.wave === 'hypersaw') {
+            // Extract new parameters, default to 0.5 for backward compatibility
+            const odd = params.hyperOdd !== undefined ? params.hyperOdd : 0.5;
+            const even = params.hyperEven !== undefined ? params.hyperEven : 0.5;
+            osc.setPeriodicWave(this.getHyperSawWave(ctx, odd, even));
+        }
         else osc.type = 'sine';
 
         osc.frequency.setValueAtTime(params.start, t);
@@ -278,11 +296,9 @@ class AudioEngine {
         return MusicUtils.bufferToWav(renderedBuffer);
     }
 
-    // --- UPDATED: SEAMLESS LOOP RENDERING ---
     async renderMelody(melody, soundLibrary) {
         this.soundLibrary = soundLibrary;
         
-        // Deep copy and parse
         this.currentMelody = JSON.parse(JSON.stringify(melody));
         this.currentMelody.tracks.forEach(t => {
             if (typeof t.pattern === 'string') {
@@ -296,28 +312,20 @@ class AudioEngine {
         this.currentMelody.tracks.forEach(t => { if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length; });
         if (maxSteps === 0) maxSteps = 16;
 
-        // 1. Calculate exact loop duration
         const loopDuration = maxSteps * stepTime;
-        
-        // 2. Add tail duration (for reverb/release) to capture the "spillover"
         const tailDuration = 4.0; 
         const totalRenderDuration = loopDuration + tailDuration;
         
         const sampleRate = 44100;
-        // Create context for the full duration (Loop + Tail)
         const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalRenderDuration * sampleRate), sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
 
-        // Schedule only the steps within the loop
         for (let step = 0; step < maxSteps; step++) {
             const time = step * stepTime;
             this.scheduleStep(step, time, stepTime, offlineCtx, offlineCtx.destination, offlineNoiseBuffer);
         }
 
-        // Render
         const renderedBuffer = await offlineCtx.startRendering();
-
-        // 3. "Wrap" the tail: Mix the audio from the tail section back into the start
         const loopSamples = Math.floor(loopDuration * sampleRate);
         const finalBuffer = this.ctx.createBuffer(2, loopSamples, sampleRate);
 
@@ -325,20 +333,16 @@ class AudioEngine {
             const sourceData = renderedBuffer.getChannelData(channel);
             const targetData = finalBuffer.getChannelData(channel);
 
-            // Copy the main body
             for (let i = 0; i < loopSamples; i++) {
                 targetData[i] = sourceData[i];
             }
 
-            // Mix the tail into the beginning
-            // We go from loopSamples to the end of the rendered buffer
             const tailSamples = renderedBuffer.length - loopSamples;
             for (let i = 0; i < tailSamples && i < loopSamples; i++) {
                 targetData[i] += sourceData[loopSamples + i];
             }
         }
 
-        // Return the perfectly looped buffer
         return MusicUtils.bufferToWav(finalBuffer);
     }
 }

@@ -5,7 +5,8 @@
 // Helper functions
 const _tone = (wave, start, end, dur, vol, attack = 0.01) => ({ 
     type: 'tone', active: true, wave, start, end, dur, vol, attack,
-    shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 
+    shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100,
+    hyperOdd: 0.5, hyperEven: 0.5 // Default for HyperSaw
 });
 
 const _noise = (dur, vol, filter) => ({ 
@@ -13,32 +14,32 @@ const _noise = (dur, vol, filter) => ({
 });
 
 const DEFAULT_SOUNDS = [
-    // --- HYPERSAW SPECIALS (NEW) ---
+    // --- HYPERSAW SPECIALS (UPDATED) ---
     {
         id: 'inst_hyper_lead', name: 'Inst - Lead - HyperSaw', desc: 'Aggressive, bright lead using 1/sqrt(n).',
         layers: [
-            { ..._tone('hypersaw', 440, 440, 0.4, 0.4, 0.05) },
-            { ..._tone('hypersaw', 440, 440, 0.4, 0.2, 0.05), fmActive: true, fmRatio: 2.01, fmDepth: 20 } // Detuned layer
+            { ..._tone('hypersaw', 440, 440, 0.4, 0.4, 0.05), hyperOdd: 0.5, hyperEven: 0.5 },
+            { ..._tone('hypersaw', 440, 440, 0.4, 0.2, 0.05), fmActive: true, fmRatio: 2.01, fmDepth: 20, hyperOdd: 0.5, hyperEven: 0.5 } // Detuned layer
         ]
     },
     {
         id: 'inst_ice_pad', name: 'Inst - Pad - Ice World', desc: 'Cold, glassy atmosphere.',
         layers: [
-            { ..._tone('hypersaw', 440, 440, 1.5, 0.3, 0.8) }, // Slow attack
+            { ..._tone('hypersaw', 440, 440, 1.5, 0.3, 0.8), hyperOdd: 0.5, hyperEven: 0.5 }, // Slow attack
             { ..._tone('sine', 880, 880, 1.5, 0.2, 0.8), fmActive: true, fmRatio: 3.5, fmDepth: 100 } // Shimmer
         ]
     },
     {
         id: 'inst_glass_bell', name: 'Inst - Keys - Glass Bell', desc: 'Sharp, crystalline impact.',
         layers: [
-            { ..._tone('hypersaw', 880, 880, 0.6, 0.5, 0.01) },
+            { ..._tone('hypersaw', 880, 880, 0.6, 0.5, 0.01), hyperOdd: 0.5, hyperEven: 0.5 },
             { ..._tone('triangle', 440, 440, 0.6, 0.3, 0.01) } // Body
         ]
     },
     {
         id: 'sfx_hyper_laser', name: 'SFX - Laser - Hyper', desc: 'High energy laser blast.',
         layers: [
-            { ..._tone('hypersaw', 2000, 200, 0.2, 0.4, 0.01) },
+            { ..._tone('hypersaw', 2000, 200, 0.2, 0.4, 0.01), hyperOdd: 0.5, hyperEven: 0.5 },
             _noise(0.1, 0.2, 5000)
         ]
     },
