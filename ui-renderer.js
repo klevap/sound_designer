@@ -170,6 +170,9 @@ const UIRenderer = {
 
         let tracksHtml = melody.tracks.map((t, i) => {
             const isActive = t.active !== false;
+            // t.pattern is now a string, so we use it directly
+            const patternVal = t.pattern; 
+            
             return `
             <div class="track-row ${isActive ? '' : 'disabled'}">
                 <div class="track-header">
@@ -185,7 +188,7 @@ const UIRenderer = {
                     </div>
                     <button class="btn btn-red btn-sm" onclick="app.removeTrack(${i})">X</button>
                 </div>
-                <input class="track-pattern-input" type="text" value="${t.pattern.join(' ')}" onchange="app.updateTrack(${i}, 'pattern', this.value)">
+                <input class="track-pattern-input" type="text" value="${patternVal}" onchange="app.updateTrack(${i}, 'pattern', this.value)">
             </div>
         `}).join('');
 

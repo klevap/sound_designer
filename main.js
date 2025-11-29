@@ -137,7 +137,8 @@ class App {
     // --- MELODY ACTIONS ---
     addNewMelody() {
         const id = 'mel_' + Date.now();
-        this.melodies.push({ id: id, name: 'New Melody', bpm: 120, tracks: [{ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: ["C4","-","C4","-"] }] });
+        // Default pattern is now a string
+        this.melodies.push({ id: id, name: 'New Melody', bpm: 120, tracks: [{ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: "C4 - C4 -" }] });
         this.selectedMelodyId = id;
         this.renderMelodyList();
         this.renderEditor();
@@ -164,7 +165,8 @@ class App {
 
     addTrack() {
         const m = this.melodies.find(x => x.id === this.selectedMelodyId);
-        if (m) { m.tracks.push({ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: ["-","-","-","-"] }); this.renderEditor(); }
+        // Default pattern is now a string
+        if (m) { m.tracks.push({ instrumentId: this.sounds[0]?.id, vol: 1.0, active: true, pattern: "- - - -" }); this.renderEditor(); }
     }
 
     removeTrack(idx) {
@@ -186,7 +188,10 @@ class App {
     updateTrack(idx, key, value) {
         const m = this.melodies.find(x => x.id === this.selectedMelodyId);
         if (m && m.tracks[idx]) {
-            if (key === 'pattern') m.tracks[idx].pattern = value.toUpperCase().split(/\s+/).filter(x => x);
+            if (key === 'pattern') {
+                // Store directly as string, just uppercase it
+                m.tracks[idx].pattern = value.toUpperCase();
+            }
             else if (key === 'vol') m.tracks[idx].vol = parseFloat(value);
             else m.tracks[idx][key] = value;
             

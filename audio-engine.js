@@ -54,9 +54,8 @@ class AudioEngine {
         return ctx.createPeriodicWave(real, imag);
     }
 
-    // NEW: HyperSaw (1 / sqrt(n)) - Very bright and aggressive
     getHyperSawWave(ctx) {
-        const num = 64; // More harmonics to emphasize the brightness
+        const num = 64; 
         const real = new Float32Array(num); 
         const imag = new Float32Array(num);
         for (let i = 1; i < num; i++) { 
@@ -126,7 +125,6 @@ class AudioEngine {
             osc.connect(shaper); outputNode = shaper;
         }
 
-        // VOLUME ENVELOPE
         const attack = params.attack !== undefined ? params.attack : 0.01;
         const release = 0.05;
         const sustainTime = Math.max(0, params.dur - attack - release);
@@ -157,7 +155,6 @@ class AudioEngine {
         src.start(t); src.stop(t + params.dur);
     }
 
-    // --- PLAYBACK & EXPORT (Standard methods) ---
     playSound(soundDef, when = 0) {
         const t = when || this.ctx.currentTime;
         soundDef.layers.forEach(l => {
@@ -176,7 +173,6 @@ class AudioEngine {
             p.vol *= volumeScale;
             if (p.type === 'tone') {
                 p.start = freq; p.end = freq; p.dur = duration; 
-                // For HyperSaw, we might want to keep it raw, but for others we flatten
                 this.scheduleTone(this.ctx, this.masterGain, p, t);
             } else {
                 this.scheduleNoise(this.ctx, this.masterGain, p, this.liveNoiseBuffer, t);
@@ -184,9 +180,18 @@ class AudioEngine {
         });
     }
 
+    // --- UPDATED: PARSE STRINGS TO ARRAYS ---
     playMusic(melody, soundLibrary) {
         if (this.isPlayingMusic) this.stopMusic();
-        this.currentMelody = melody;
+        
+        // Deep copy and parse patterns
+        this.currentMelody = JSON.parse(JSON.stringify(melody));
+        this.currentMelody.tracks.forEach(t => {
+            if (typeof t.pattern === 'string') {
+                t.pattern = t.pattern.trim().split(/\s+/);
+            }
+        });
+
         this.soundLibrary = soundLibrary;
         this.isPlayingMusic = true;
         this.currentStep = 0;
@@ -275,13 +280,22 @@ class AudioEngine {
         return MusicUtils.bufferToWav(renderedBuffer, renderDur * sampleRate);
     }
 
+    // --- UPDATED: PARSE STRINGS FOR RENDER ---
     async renderMelody(melody, soundLibrary) {
         this.soundLibrary = soundLibrary;
-        this.currentMelody = melody;
+        
+        // Deep copy and parse
+        this.currentMelody = JSON.parse(JSON.stringify(melody));
+        this.currentMelody.tracks.forEach(t => {
+            if (typeof t.pattern === 'string') {
+                t.pattern = t.pattern.trim().split(/\s+/);
+            }
+        });
+
         const bpm = melody.bpm;
         const stepTime = (60.0 / bpm) / 4;
         let maxSteps = 0;
-        melody.tracks.forEach(t => { if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length; });
+        this.currentMelody.tracks.forEach(t => { if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length; });
         if (maxSteps === 0) maxSteps = 16;
         const duration = (maxSteps * stepTime) + 4.0;
         const sampleRate = 44100;
