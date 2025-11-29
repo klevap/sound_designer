@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Architect: Ultimate</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Стили оставляем те же, они внутри <style> в исходном файле -->
     <style>
+        /* Вставьте сюда CSS из вашего исходного файла index.html */
+        /* Добавим небольшой стиль для чекбокса трека */
+        .track-active-check { transform: scale(1.2); margin-right: 5px; cursor: pointer; }
+        
         :root {
             --bg: #2c3e50;
             --panel: #34495e;
@@ -258,7 +263,9 @@
         .track-row {
             background: #222; padding: 10px; border-radius: 4px;
             border-left: 4px solid var(--success); display: flex; flex-direction: column; gap: 5px;
+            transition: opacity 0.3s;
         }
+        .track-row.disabled { opacity: 0.5; border-left-color: #555; }
         .track-header { display: flex; justify-content: space-between; align-items: center; }
         .track-instrument-select { width: 200px; }
         .track-pattern-input {
@@ -336,18 +343,8 @@
 
 <!-- MAIN EDITOR AREA -->
 <div class="editor-area">
-    
-    <!-- SOUND EDITOR VIEW -->
-    <div id="view-sound">
-        <!-- Injected by JS -->
-    </div>
-
-    <!-- MUSIC EDITOR VIEW -->
-    <div id="view-music" class="hidden">
-        <!-- Injected by JS -->
-    </div>
-
-    <!-- SHARED CODE BLOCK -->
+    <div id="view-sound"></div>
+    <div id="view-music" class="hidden"></div>
     <div class="code-block">
         <button class="btn btn-gray btn-sm copy-btn" onclick="app.copyCode()">COPY JSON</button>
         <div id="codeOutput"></div>
@@ -355,8 +352,11 @@
 </div>
 
 <!-- SCRIPTS -->
+<script src="utils.js"></script>
 <script src="presets.js"></script>
 <script src="melodies.js"></script>
+<script src="audio-engine.js"></script>
+<script src="ui-renderer.js"></script>
 <script src="main.js"></script>
 
 </body>
