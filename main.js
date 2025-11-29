@@ -102,7 +102,6 @@ class App {
     updateLayer(idx, key, value) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (s && s.layers[idx]) {
-            // UPDATED: Added new filter and pulse parameters to float parsing
             const floatKeys = [
                 'start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack', 
                 'hyperOdd', 'hyperEven', 'pulseWidth',
@@ -202,12 +201,28 @@ class App {
     updateTrack(idx, key, value) {
         const m = this.melodies.find(x => x.id === this.selectedMelodyId);
         if (m && m.tracks[idx]) {
+            // 1. Update Model
             if (key === 'pattern') {
                 m.tracks[idx].pattern = value.toUpperCase();
             }
-            else if (key === 'vol') m.tracks[idx].vol = parseFloat(value);
-            else m.tracks[idx][key] = value;
+            else if (key === 'vol') {
+                const vol = parseFloat(value);
+                m.tracks[idx].vol = vol;
+                // LIVE UPDATE: Volume
+                if (this.audio.isPlayingMusic) {
+                    this.audio.updateLiveTrack(idx, 'vol', vol);
+                }
+            }
+            else {
+                // Handle 'active' (checkbox)
+                m.tracks[idx][key] = value;
+                // LIVE UPDATE: Active state
+                if (this.audio.isPlayingMusic) {
+                    this.audio.updateLiveTrack(idx, key, value);
+                }
+            }
             
+            // 2. Update UI
             if (key === 'active') this.renderEditor(); 
             this.updateCodeOutput(m);
         }

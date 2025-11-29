@@ -30,9 +30,7 @@ class AudioEngine {
 
     // --- WAVE GENERATORS ---
     
-    // NEW: Variable Pulse Wave (PWM capable)
     getVariablePulseWave(ctx, width) {
-        // Cache key based on width (rounded to 2 decimals to save cache)
         const w = Math.round(width * 100) / 100;
         const key = `pulse_${w}`;
         if (this.waveCache[key]) return this.waveCache[key];
@@ -41,7 +39,6 @@ class AudioEngine {
         const real = new Float32Array(num);
         const imag = new Float32Array(num);
         
-        // Fourier series for Pulse Wave: 2/(n*pi) * sin(n * pi * width)
         for (let n = 1; n < num; n++) {
             imag[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * w);
         }
@@ -160,7 +157,7 @@ class AudioEngine {
             osc.connect(shaper); outputNode = shaper;
         }
 
-        // 5. NEW: Dynamic Filter (Subtractive Synthesis)
+        // 5. Dynamic Filter
         if (params.filterActive) {
             const filter = ctx.createBiquadFilter();
             filter.type = params.filterType || 'lowpass';
@@ -169,19 +166,16 @@ class AudioEngine {
             const baseFreq = Math.max(10, params.filterFreq);
             filter.frequency.setValueAtTime(baseFreq, t);
 
-            // Filter Envelope
             if (params.filterEnv && params.filterEnv !== 0) {
                 const envAmt = params.filterEnv;
                 const fAttack = params.filterAttack || 0.05;
                 const fDecay = params.filterDecay || 0.1;
-                const fSustain = params.filterSustain !== undefined ? params.filterSustain : 0.5; // 0 to 1 multiplier of envAmt
+                const fSustain = params.filterSustain !== undefined ? params.filterSustain : 0.5;
                 
                 const peakFreq = Math.max(10, Math.min(22000, baseFreq + envAmt));
                 const sustainFreq = Math.max(10, Math.min(22000, baseFreq + (envAmt * fSustain)));
 
-                // Attack
                 filter.frequency.linearRampToValueAtTime(peakFreq, t + fAttack);
-                // Decay to Sustain
                 filter.frequency.exponentialRampToValueAtTime(sustainFreq, t + fAttack + fDecay);
             }
 
@@ -265,6 +259,13 @@ class AudioEngine {
     stopMusic() {
         this.isPlayingMusic = false;
         if (this.musicTimer) clearTimeout(this.musicTimer);
+    }
+
+    // NEW: Allows updating track parameters while music is playing
+    updateLiveTrack(trackIndex, key, value) {
+        if (this.currentMelody && this.currentMelody.tracks[trackIndex]) {
+            this.currentMelody.tracks[trackIndex][key] = value;
+        }
     }
 
     scheduler() {

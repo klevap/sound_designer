@@ -1,7 +1,7 @@
 /**
  * EXTENDED MUSIC LIBRARY - ULTIMATE EDITION
  * Optimized for New Realistic Instruments (PWM & Filter Envelopes)
- * All melodies restored and enhanced.
+ * All melodies restored and enhanced with complex harmonies and rhythms.
  */
 
 const DEFAULT_MELODIES = [
@@ -11,29 +11,34 @@ const DEFAULT_MELODIES = [
         bpm: 128,
         tracks: [
             {
-                // Driving Analog Bass using PWM + Filter
+                // Driving Analog Bass - Octave jumping for energy
                 instrumentId: 'inst_real_bass', vol: 0.8,
-                pattern: "C2 - C2 - C3 - C2 - G1 - G1 - A#1 - C2 - C2 - C2 - C3 - C2 - F2 - D#2 - D2 - C2 -"
+                pattern: "C2 - C3 - C2 - G1 - A#1 - A#2 - A#1 - F1 - G#1 - G#2 - G#1 - D#1 - G1 - G2 - G1 - D1 -"
             },
             {
-                // Kick Drum
-                instrumentId: 'jump_4', vol: 0.6,
-                pattern: "C2 - - - C2 - - - C2 - - - C2 - - - C2 - - - C2 - - - C2 - - - C2 - C2 -"
+                // Kick Drum - Four on the floor with syncopation
+                instrumentId: 'jump_4', vol: 0.7,
+                pattern: "C2 - - - C2 - - - C2 - - - C2 - C2 - C2 - - - C2 - - - C2 - - - C2 - C2 -"
             },
             {
-                // Hi-Hats
-                instrumentId: 'shoot_4', vol: 0.3,
-                pattern: "- - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - C4 C4 C4 -"
+                // Hi-Hats - Open/Closed interplay
+                instrumentId: 'shoot_4', vol: 0.4,
+                pattern: "- - C4 - - - C4 C4 - - C4 - - - C4 - - - C4 - - - C4 C4 - - C4 - C4 C4 C4 -"
             },
             {
-                // HyperSaw Lead - Cyberpunk melody
-                instrumentId: 'inst_hyper_lead', vol: 0.5,
-                pattern: "C4 - - D#4 - G4 - A#4 C5 - - G4 - - F4 D#4 C4 - - C4 D#4 F4 - G4 F4 - D#4 - C4 - - - C5 - - A#4 - G4 - F4 G4 - - C5 - - D#5 - F5 - - G5 F5 - D#5 - C5 - A#4 - C5 - - -"
+                // HyperSaw Lead - Catchy Synthwave hook
+                instrumentId: 'inst_hyper_lead', vol: 0.6,
+                pattern: "C5 - - A#4 - G4 - D#4 - - F4 G4 - - - C5 - - A#4 - C5 - D#5 - - D5 - C5 - A#4 - G4 - - F4 - D#4 - C4 - - D#4 - F4 - G4 - - A#4 - C5 - -"
             },
             {
-                // Background Pad
+                // Background Pad - Sidechained rhythm feel
                 instrumentId: 'inst_pad_dark', vol: 0.4,
-                pattern: "C3 - - - - - - - D#3 - - - - - - - F3 - - - - - - - G3 - - - - - - - C3 - - - - - - - A#2 - - - - - - - G#2 - - - - - - - G2 - - - - - - -"
+                pattern: "- - C3 D#3 G3 - - - - - A#2 D3 F3 - - - - - G#2 C3 D#3 - - - - - G2 A#2 D3 - - -"
+            },
+            {
+                // Mid Arp - Fast 16th notes run
+                instrumentId: 'inst_epiano', vol: 0.4,
+                pattern: "C4 G3 D#4 G3 C4 G3 D#4 G3 A#3 F3 D4 F3 A#3 F3 D4 F3 G#3 D#3 C4 D#3 G#3 D#3 C4 D#3 G3 D3 A#3 D3 G3 D3 A#3 D3"
             }
         ]
     },
@@ -43,24 +48,29 @@ const DEFAULT_MELODIES = [
         bpm: 150,
         tracks: [
             {
-                // Orchestral Percussion
-                instrumentId: 'exp_2', vol: 0.6,
-                pattern: "C1 - - C1 - - C1 - C1 - - - C1 - - - C1 - - C1 - - C1 - C1 - C1 - C1 - - - C1 - - C1 - - C1 - C1 - - - C1 - - - C1 - C1 - - - C1 - C1 - C1 - C1 - C1 -"
+                // Orchestral Percussion - Cinematic War Drums
+                instrumentId: 'exp_2', vol: 0.7,
+                pattern: "C1 - C1 C1 - - C1 - C1 - - - C1 C1 C1 - C1 - C1 C1 - - C1 - C1 C1 - C1 C1 C1 C1 -"
             },
             {
-                // Fast Violin Arpeggios (New Real Violin)
+                // Fast Violin - Spiccato Ostinato
                 instrumentId: 'inst_real_violin', vol: 0.6,
-                pattern: "A3 C4 E4 A4 G3 B3 D4 G4 F3 A3 C4 F4 E3 G#3 B3 E4 A3 C4 E4 A4 G3 B3 D4 G4 F3 A3 C4 F4 E3 G#3 B3 E4"
+                pattern: "A3 E4 A4 E4 A3 E4 A4 E4 G3 D4 G4 D4 G3 D4 G4 D4 F3 C4 F4 C4 F3 C4 F4 C4 E3 B3 E4 B3 E3 B3 E4 B3"
             },
             {
-                // Heroic Trumpet Melody (New Real Trumpet)
-                instrumentId: 'inst_real_trumpet', vol: 0.7,
-                pattern: "A4 - - - - - - - B4 - - - - - - - C5 - - - - - - - B4 - - - - - - - E5 - - - - - - - D5 - - - - - - - C5 - - - - - - - B4 - - - - - - -"
+                // Heroic Trumpet - Epic Fanfare
+                instrumentId: 'inst_real_trumpet', vol: 0.8,
+                pattern: "A4 - - - E5 - - - C5 - - - A4 - - - B4 - - - - - G4 - - - - - - - - - F4 - - - C5 - - - A4 - - - F4 - - - E4 - - - - - G#4 - - - B4 - - -"
             },
             {
-                // Heavy Piano Chords (New Real Piano)
-                instrumentId: 'inst_real_piano', vol: 0.6,
-                pattern: "A2 - - - - - - - G2 - - - - - - - F2 - - - - - - - E2 - - - - - - - A2 - - - - - - - G2 - - - - - - - F2 - - - - - - - E2 - - - - - - -"
+                // Heavy Piano - Low Octave Impact
+                instrumentId: 'inst_real_piano', vol: 0.7,
+                pattern: "A1 A2 - - - - - - G1 G2 - - - - - - F1 F2 - - - - - - E1 E2 - - - - - -"
+            },
+            {
+                // Dark Pad Choir - Dramatic swells
+                instrumentId: 'inst_pad_dark', vol: 0.5,
+                pattern: "A3 C4 E4 - - - - - G3 B3 D4 - - - - - F3 A3 C4 - - - - - E3 G#3 B3 - - - - -"
             }
         ]
     },
@@ -70,24 +80,29 @@ const DEFAULT_MELODIES = [
         bpm: 70,
         tracks: [
             {
-                // Deep Sub Bass
+                // Deep Sub Bass - Slow movement
                 instrumentId: 'inst_real_bass', vol: 0.7,
                 pattern: "C2 - - - - - - - - - - - - - - - G1 - - - - - - - - - - - - - - - A#1 - - - - - - - - - - - - - - - F1 - - - - - - - - - - - - - - -"
             },
             {
-                // Real Piano Chords
+                // Real Piano - Satie-esque chords
                 instrumentId: 'inst_real_piano', vol: 0.5,
-                pattern: "C4 - D#4 G4 - - - - - - - - - - - A#3 - D4 F4 - - - - - - - - - - - G#3 - C4 D#4 - - - - - - - - - - - G3 - A#3 D4 - - - - - - - - - - -"
+                pattern: "G3 C4 D#4 - - - - - - - - - - - - F3 A#3 D4 - - - - - - - - - - - - D#3 G#3 C4 - - - - - - - - - - - - D3 G3 A#3 - - - - - - - - - - - -"
             },
             {
-                // Breathy Flute Melody (New Real Flute)
+                // Breathy Flute - Pentatonic drift
                 instrumentId: 'inst_real_flute', vol: 0.6,
-                pattern: "- - - - G4 - - - D#4 - - - C4 - - - - - - - - - - - - - - - - - - - - - - - C5 - - - G#4 - - - F4 - - - - - - - A#4 - - - G4 - - - D#4 - - -"
+                pattern: "C5 - - - G4 - - - D#4 - - - C4 - - - D4 - - - - - - - F4 - - - G4 - - - G#4 - - - G4 - - - F4 - - - D#4 - - - C4 - - - - - - - - - - -"
             },
             {
-                // Atmospheric Pad
+                // Atmospheric Pad - Texture
                 instrumentId: 'inst_ice_pad', vol: 0.4,
-                pattern: "C3 - - - - - - - - - - - - - - - A#2 - - - - - - - - - - - - - - - G#2 - - - - - - - - - - - - - - - G2 - - - - - - - - - - - - - - -"
+                pattern: "C3 G3 - - - - - - - - - - - - - - A#2 F3 - - - - - - - - - - - - - - G#2 D#3 - - - - - - - - - - - - - - G2 D3 - - - - - - - - - - - - - -"
+            },
+            {
+                // Clarinet - Call and response
+                instrumentId: 'inst_real_clarinet', vol: 0.4,
+                pattern: "- - - - - - - - - - - - G3 - A#3 - C4 - - - - - - - - - - - - D4 - F4 - D#4 - - - - - - - - - - - - C4 - D4 - C4 - - - - - - - - - - -"
             }
         ]
     },
@@ -97,24 +112,29 @@ const DEFAULT_MELODIES = [
         bpm: 140,
         tracks: [
             {
-                // Pizzicato Bass (Oom-pah-pah feel)
+                // Pizzicato Bass - 3/4 feel in 4/4 grid (12/8 feel)
                 instrumentId: 'inst_str_pizz', vol: 0.6,
-                pattern: "C2 - - - - - - - C2 - - - - - - - A1 - - - - - - - A1 - - - - - - - F1 - - - - - - - F1 - - - - - - - G1 - - - - - - - G1 - - - - - - -"
+                pattern: "C2 - - G2 - - C2 - - G2 - - A1 - - E2 - - A1 - - E2 - - F1 - - C2 - - F1 - - C2 - - G1 - - D2 - - G1 - - B1 - -"
             },
             {
-                // Clarinet Rhythm (New Real Clarinet)
+                // Clarinet - Counterpoint triplets
                 instrumentId: 'inst_real_clarinet', vol: 0.5,
-                pattern: "- - E4 G4 - - E4 G4 - - E4 G4 - - E4 G4 - - C4 E4 - - C4 E4 - - C4 E4 - - C4 E4 - - A3 C4 - - A3 C4 - - A3 C4 - - A3 C4 - - B3 D4 - - B3 D4 - - B3 D4 - - B3 D4"
+                pattern: "- - E4 - - G4 - - E4 - - G4 - - C4 - - E4 - - C4 - - E4 - - A3 - - C4 - - A3 - - C4 - - B3 - - D4 - - B3 - - D4"
             },
             {
-                // Violin Melody
-                instrumentId: 'inst_real_violin', vol: 0.6,
-                pattern: "E5 - - - - - F5 - G5 - - - - - - - C6 - - - - - B5 - A5 - - - - - - - F5 - - - - - G5 - A5 - - - - - - - B5 - - - - - C6 - D6 - - - - - - -"
+                // Violin - Soaring Waltz Melody
+                instrumentId: 'inst_real_violin', vol: 0.7,
+                pattern: "E5 - - - - - D5 - - C5 - - B4 - - - - - A4 - - G4 - - F4 - - - - - E4 - - D4 - - G4 - - - - - F4 - - E4 - - D4 - - - - - - - -"
             },
             {
-                // Glass Bell Accents
+                // Glass Bell - Magical accents on beat 1
                 instrumentId: 'inst_glass_bell', vol: 0.4,
-                pattern: "C5 - - - - - - - - - - - - - - - A4 - - - - - - - - - - - - - - - F4 - - - - - - - - - - - - - - - G4 - - - - - - - - - - - - - - -"
+                pattern: "C5 - - - - - - - - - - - A4 - - - - - - - - - - - F4 - - - - - - - - - - - G4 - - - - - - - - - - -"
+            },
+            {
+                // Piano - Arpeggiated accompaniment
+                instrumentId: 'inst_real_piano', vol: 0.5,
+                pattern: "C4 G3 E4 C4 G3 E4 C4 G3 E4 C4 G3 E4 A3 E4 C4 A3 E4 C4 A3 E4 C4 A3 E4 C4 F3 C4 A3 F3 C4 A3 F3 C4 A3 F3 C4 A3 G3 D4 B3 G3 D4 B3 G3 D4 B3 G3 D4 B3"
             }
         ]
     },
@@ -124,24 +144,29 @@ const DEFAULT_MELODIES = [
         bpm: 100,
         tracks: [
             {
-                // Pizzicato Arp
+                // Pizzicato - Playful interaction
                 instrumentId: 'inst_str_pizz', vol: 0.5,
-                pattern: "D3 - A3 - F3 - A3 - D3 - A3 - F3 - A3 - G3 - B3 - D3 - B3 - G3 - B3 - D3 - B3 - A3 - C#4 - E3 - C#4 - A3 - C#4 - E3 - C#4 - D3 - A3 - F3 - A3 - D3 - A3 - F3 - A3 -"
+                pattern: "D3 - A3 F3 - A3 D3 - G3 - B3 D4 - B3 G3 - A3 - C#4 E4 - C#4 A3 - D3 - F3 A3 - F3 D3 -"
             },
             {
-                // Real Flute Lead
+                // Real Flute - Celtic/Fantasy style
                 instrumentId: 'inst_real_flute', vol: 0.7,
-                pattern: "F4 - E4 - D4 - - - A4 - - - F4 - - - G4 - F#4 - G4 - - - B4 - - - G4 - - - E4 - D4 - C#4 - - - E4 - - - A4 - - - F4 - E4 - D4 - - - D5 - - - - - - -"
+                pattern: "D5 - A4 - F4 E4 D4 - G4 - B4 - D5 C5 B4 - A4 - C#5 - E5 - G5 - F#5 - D5 - A4 - F4 E4 D4 -"
             },
             {
-                // Piano Support
+                // Piano - Broken chords
                 instrumentId: 'inst_real_piano', vol: 0.5,
-                pattern: "D3 - - - - - - - - - - - - - - - G3 - - - - - - - - - - - - - - - A3 - - - - - - - - - - - - - - - D3 - - - - - - - - - - - - - - -"
+                pattern: "D3 F3 A3 - - - - - G3 B3 D4 - - - - - A3 C#4 E4 - - - - - D3 F3 A3 - - - - -"
             },
             {
-                // High Bell
+                // High Bell - Sparkles
                 instrumentId: 'inst_glass_bell', vol: 0.3,
-                pattern: "- - - - A5 - - - - - - - D5 - - - - - - - B5 - - - - - - - G5 - - - - - - - C#6 - - - - - - - A5 - - - - - - - D6 - - - - - - - A5 - - -"
+                pattern: "- - - - A5 - - - - - - - B5 - - - - - - - C#6 - - - - - - - D6 - A5 F5 - - - -"
+            },
+            {
+                // Warm Pad - Sustained harmony
+                instrumentId: 'inst_ice_pad', vol: 0.4,
+                pattern: "F3 - - - - - - - G3 - - - - - - - E3 - - - - - - - F3 - - - - - - -"
             }
         ]
     },
@@ -151,24 +176,29 @@ const DEFAULT_MELODIES = [
         bpm: 85,
         tracks: [
             {
-                // Analog Bass (Smooth)
+                // Analog Bass - Smooth slides
                 instrumentId: 'inst_real_bass', vol: 0.7,
-                pattern: "F2 - - - - - - - - - F2 - - - - - E2 - - - - - - - - - E2 - - - - - D2 - - - - - - - - - D2 - - - - - C2 - - - - - - - - - C2 - - - - -"
+                pattern: "F2 - - - - - C3 - A2 - E2 - - - - - B2 - G2 - D2 - - - - - A2 - F2 - C2 - - - - - G2 - E2 -"
             },
             {
-                // Soft Hi-Hats
-                instrumentId: 'shoot_4', vol: 0.2,
-                pattern: "- - - - C4 - - - - - - - C4 - - C4 - - - - C4 - - - - - - - C4 - - - - - - - C4 - - - - - - - C4 - - C4 - - - - C4 - - - - - - - C4 - - -"
+                // Soft Hi-Hats - Swing feel
+                instrumentId: 'shoot_4', vol: 0.3,
+                pattern: "C4 - - C4 - C4 - - C4 - - C4 - C4 - - C4 - - C4 - C4 - - C4 - - C4 - C4 - -"
             },
             {
-                // Real Piano Chords (Jazzy)
+                // Real Piano - Jazz Chords (Maj7, min7)
                 instrumentId: 'inst_real_piano', vol: 0.6,
-                pattern: "F3 A3 C4 E4 - - - - - - F3 A3 - - - - E3 G3 B3 D4 - - - - - - E3 G3 - - - - D3 F3 A3 C4 - - - - - - D3 F3 - - - - C3 E3 G3 B3 - - - - - - C3 E3 - - - -"
+                pattern: "F3 A3 C4 E4 - - - - E3 G3 B3 D4 - - - - D3 F3 A3 C4 - - - - C3 E3 G3 B3 - - - -"
             },
             {
-                // Muted Trumpet Solo (Wah effect)
+                // Muted Trumpet - Lazy solo
                 instrumentId: 'inst_real_trumpet', vol: 0.5,
-                pattern: "- - - - - - - - - - - - - - - - - - - - A4 - - G4 - - F4 - - E4 - - - - - - - - - - - - - - - - - - - - D4 - - E4 - - F4 - - G4 - - A4 - -"
+                pattern: "- - - - A4 - G4 - F4 - - - - - - - G4 - - - - - F4 - E4 - D4 - - - - - - - C4 - -"
+            },
+            {
+                // E-Piano - Texture layers
+                instrumentId: 'inst_epiano', vol: 0.4,
+                pattern: "- - C4 E4 - - - - - - B3 D4 - - - - - - A3 C4 - - - - - - G3 B3 - - - -"
             }
         ]
     },
@@ -178,24 +208,29 @@ const DEFAULT_MELODIES = [
         bpm: 80,
         tracks: [
             {
-                // Kick
+                // Kick - Broken beat
                 instrumentId: 'jump_4', vol: 0.5,
-                pattern: "C2 - - - - - - - C2 - - - - - C2 - C2 - - - - - - - - - C2 - - - - - C2 - - - - - - - C2 - - - - - C2 - C2 - - - - - - - - - C2 - - - - -"
+                pattern: "C2 - - - - - C2 - - - C2 - - - - - C2 - - - - - C2 - - - C2 - - - C2 -"
             },
             {
-                // Real Piano Melody
+                // Real Piano - Melancholic melody
                 instrumentId: 'inst_real_piano', vol: 0.7,
-                pattern: "- - C5 - - - B4 - G4 - - - - - - - - - E4 - - - G4 - A4 - - - - - - - - - C5 - - - B4 - G4 - - - - - - - - - E4 - - - D4 - C4 - - - - - - -"
+                pattern: "E5 - - - B4 - - - C5 - A4 - - - - - G4 - - - D4 - - - E4 - C4 - - - - - A3 - - - E4 - - - F4 - D4 - - - - - C4 - - - G3 - - - A3 - - - - - - -"
             },
             {
-                // Dark Pad
+                // Dark Pad - Minor 9th chords
                 instrumentId: 'inst_pad_dark', vol: 0.4,
-                pattern: "A2 - - - - - - - E3 - - - - - - - F3 - - - - - - - C3 - - - - - - - A2 - - - - - - - E3 - - - - - - - F3 - - - - - - - G3 - - - - - - -"
+                pattern: "A2 C3 E3 G3 - - - - F2 A2 C3 E3 - - - - G2 B2 D3 F3 - - - - C3 E3 G3 B3 - - - -"
             },
             {
-                // Clarinet Counter-melody
+                // Clarinet - Low register warmth
                 instrumentId: 'inst_real_clarinet', vol: 0.4,
-                pattern: "A3 - - - - - - - E3 - - - - - - - F3 - - - - - - - C3 - - - - - - - A3 - - - - - - - E3 - - - - - - - F3 - - - - - - - G3 - - - - - - -"
+                pattern: "E3 - - - - - - - F3 - - - - - - - D3 - - - - - - - E3 - - - - - - -"
+            },
+            {
+                // Warm Bass - Simple root notes
+                instrumentId: 'inst_real_bass', vol: 0.6,
+                pattern: "A1 - - - - - - - F1 - - - - - - - G1 - - - - - - - C2 - - - - - - -"
             }
         ]
     },
@@ -205,24 +240,29 @@ const DEFAULT_MELODIES = [
         bpm: 90,
         tracks: [
             {
-                // Organ Chords
-                instrumentId: 'inst_organ', vol: 0.6,
-                pattern: "D3 F3 A3 - - - D3 F3 A3 - - - G2 B2 D3 - - - G2 B2 D3 - - - C3 E3 G3 - - - C3 E3 G3 - - - A2 C3 E3 - - - A2 C3 E3 - - - D3 F3 A3 - - - D3 F3 A3 - - - G2 B2 D3 - - - G2 B2 D3 - - - C3 E3 G3 - - - C3 E3 G3 - - - C3 E3 G3 - - - C3 E3 G3 - - -"
+                // Organ - Gospel/Soul chords
+                instrumentId: 'inst_organ', vol: 0.5,
+                pattern: "D3 F3 A3 C4 - - - - G2 B2 D3 F3 - - - - C3 E3 G3 B3 - - - - A2 C#3 E3 G3 - - - -"
             },
             {
-                // Walking Bass (Real Bass)
+                // Walking Bass - Jazz lines
                 instrumentId: 'inst_real_bass', vol: 0.6,
-                pattern: "D2 - - - A1 - - - G1 - - - B1 - - - C2 - - - G1 - - - A1 - - - E1 - - - D2 - - - A1 - - - G1 - - - B1 - - - C2 - - - G1 - - - C2 - - - G1 - - -"
+                pattern: "D2 - - - A1 - - - G1 - - - B1 - - - C2 - - - G1 - - - A1 - - - C#2 - - -"
             },
             {
-                // Flute Solo
+                // Flute - Improvisation
                 instrumentId: 'inst_real_flute', vol: 0.6,
-                pattern: "- - - - - - A4 - B4 - A4 - G4 - - - E4 - - - - - D4 - E4 - - - - - - - - - - - A4 - B4 - A4 - G4 - - - C5 - - - - - B4 - C5 - - - - - - -"
+                pattern: "A4 - C5 - D5 - F5 - E5 - C5 - A4 - - - B4 - G4 - - - - - C5 - G4 - E4 - - - - - A4 - E4 - C#4 - - -"
             },
             {
-                // Soft Percussion
+                // Soft Percussion - Shaker feel
                 instrumentId: 'shoot_4', vol: 0.2,
-                pattern: "C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 - C4 -"
+                pattern: "C4 - C4 C4 C4 - C4 - C4 - C4 C4 C4 - C4 - C4 - C4 C4 C4 - C4 - C4 - C4 C4 C4 - C4 -"
+            },
+            {
+                // E-Piano - Syncopated stabs
+                instrumentId: 'inst_epiano', vol: 0.4,
+                pattern: "- - F3 A3 - - - - - - G3 B3 - - - - - - E3 G3 - - - - - - A2 C#3 - - - -"
             }
         ]
     },
@@ -232,24 +272,29 @@ const DEFAULT_MELODIES = [
         bpm: 75,
         tracks: [
             {
-                // Deep Bass
+                // Deep Bass - Sustained
                 instrumentId: 'inst_real_bass', vol: 0.7,
-                pattern: "F1 - - - - - - - - - - - - - - - G1 - - - - - - - - - - - - - - - E1 - - - - - - - - - - - - - - - A1 - - - - - - - - - - - - - - -"
+                pattern: "F1 - - - - - - - G1 - - - - - - - E1 - - - - - - - A1 - - - - - - -"
             },
             {
-                // E-Piano Chords
+                // E-Piano - Dreamy chords
                 instrumentId: 'inst_epiano', vol: 0.6,
-                pattern: "- - A3 C4 E4 - - - - - B3 D4 F#4 - - - - - G3 B3 D4 - - - - - C4 E4 G4 - - - - - F3 A3 C4 - - - - - B3 D4 F#4 - - - - - E4 G#4 B4 - - - - - - - - - - - -"
+                pattern: "F3 A3 C4 E4 - - - - G3 B3 D4 F#4 - - - - E3 G#3 B3 D#4 - - - - A2 C3 E3 G3 - - - -"
             },
             {
-                // Noir Trumpet
+                // Noir Trumpet - Muted melody
                 instrumentId: 'inst_real_trumpet', vol: 0.5,
-                pattern: "C4 - - - - - D4 - E4 - - - - - - - B3 - - - - - - - - - - - - - - - G3 - - - - - - - A3 - B3 - - - - - C4 - - - - - - - - - - - - - - - - - - - - - -"
+                pattern: "C4 - - - D4 - - - B3 - - - - - - - G#3 - - - - - - - A3 - - - - - - -"
             },
             {
-                // Slow Kick
+                // Slow Kick - Heartbeat
                 instrumentId: 'exp_1', vol: 0.5,
-                pattern: "C1 - - - - - - - - - - - - - - - C1 - - - - - - - - - - - - - - - C1 - - - - - - - - - - - - - - - C1 - - - - - - - - - - - - - - -"
+                pattern: "C1 - - - - - - - - - C1 - - - - - - C1 - - - - - - - - - C1 - - - - - -"
+            },
+            {
+                // Soft Hi-Hat - Ticking clock
+                instrumentId: 'shoot_4', vol: 0.2,
+                pattern: "C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - - C4 - - -"
             }
         ]
     },
@@ -259,24 +304,29 @@ const DEFAULT_MELODIES = [
         bpm: 80,
         tracks: [
             {
-                // Ice Pad Atmosphere
+                // Ice Pad - Slow morphing chords
                 instrumentId: 'inst_ice_pad', vol: 0.5,
-                pattern: "C3 - - - - - - - - - - - - - - - F3 - - - - - - - - - - - - - - - A2 - - - - - - - - - - - - - - - G2 - - - - - - - - - - - - - - - C3 - - - - - - - - - - - - - - - F3 - - - - - - - - - - - - - - - A2 - - - - - - - - - - - - - - - G2 - - - - - - - - - - - - - - -"
+                pattern: "C3 E3 G3 - - - - - F3 A3 C4 - - - - - A2 C3 E3 - - - - - G2 B2 D3 - - - - -"
             },
             {
-                // Real Piano Arpeggios
+                // Real Piano - Flowing arpeggios
                 instrumentId: 'inst_real_piano', vol: 0.6,
-                pattern: "E4 - - G4 - - C5 - E4 - - G4 - - C5 - F4 - - A4 - - C5 - F4 - - A4 - - C5 - E4 - - A4 - - C5 - E4 - - A4 - - C5 - D4 - - G4 - - B4 - D4 - - G4 - - B4 - E4 - - G4 - - C5 - E4 - - G4 - - C5 - F4 - - A4 - - C5 - F4 - - A4 - - C5 - E4 - - A4 - - C5 - E4 - - A4 - - C5 - D4 - - G4 - - B4 - D4 - - G4 - - B4 -"
+                pattern: "C4 G4 E5 G4 C4 G4 E5 G4 F4 A4 C5 A4 F4 A4 C5 A4 A3 E4 C5 E4 A3 E4 C5 E4 G3 D4 B4 D4 G3 D4 B4 D4"
             },
             {
-                // Real Flute Melody
+                // Real Flute - Morning bird call
                 instrumentId: 'inst_real_flute', vol: 0.6,
-                pattern: "C5 - - - - - B4 - C5 - - - G4 - - - A4 - - - - - G4 - F4 - - - E4 - - - C5 - - - - - D5 - E5 - - - C5 - - - B4 - - - - - A4 - G4 - - - - - - - C5 - - - - - B4 - C5 - - - G4 - - - A4 - - - - - G4 - F4 - - - E4 - - - C5 - - - - - D5 - E5 - - - C5 - - - B4 - - - - - A4 - G4 - - - - - - -"
+                pattern: "- - - - E5 - - - - - - - C5 - - - - - - - A4 - - - - - - - G4 - - - B4 - - -"
             },
             {
-                // Glass Bell Sparkles
+                // Glass Bell - Light refraction
                 instrumentId: 'inst_glass_bell', vol: 0.3,
-                pattern: "- - - - - - - - - - - - C6 - G5 - - - - - - - - - - - - - A5 - F5 - - - - - - - - - - - - - E6 - C6 - - - - - - - - - - - - - D6 - B5 - - - - - - - - - - - - - C6 - G5 - - - - - - - - - - - - - A5 - F5 - - - - - - - - - - - - - E6 - C6 - - - - - - - - - - - - - D6 - B5 -"
+                pattern: "C6 - - - - - - - A5 - - - - - - - E6 - - - - - - - D6 - - - - - - -"
+            },
+            {
+                // Sub Bass - Foundation
+                instrumentId: 'inst_real_bass', vol: 0.5,
+                pattern: "C2 - - - - - - - F2 - - - - - - - A1 - - - - - - - G1 - - - - - - -"
             }
         ]
     },
@@ -286,24 +336,29 @@ const DEFAULT_MELODIES = [
         bpm: 70,
         tracks: [
             {
-                // Dark Pad Base
+                // Dark Pad - Drone
                 instrumentId: 'inst_pad_dark', vol: 0.6,
-                pattern: "C2 - - - - - - - - - - - - - - - G2 - - - - - - - - - - - - - - - F2 - - - - - - - - - - - - - - - C2 - - - - - - - - - - - - - - - C2 - - - - - - - - - - - - - - - G2 - - - - - - - - - - - - - - - F2 - - - - - - - - - - - - - - - C2 - - - - - - - - - - - - - - -"
+                pattern: "C2 G2 - - - - - - G2 D3 - - - - - - F2 C3 - - - - - - C2 G2 - - - - - -"
             },
             {
-                // Woodwind Duet (Flute)
+                // Flute - Airy melody
                 instrumentId: 'inst_real_flute', vol: 0.5,
-                pattern: "- - - - E4 - - - - - - - G4 - - - - - - - D4 - - - - - - - B3 - - - - - - - C4 - - - - - - - A3 - - - - - - - G3 - - - - - - - - - - - - - - - E4 - - - - - - - G4 - - - - - - - D4 - - - - - - - B3 - - - - - - - C4 - - - - - - - A3 - - - - - - - C4 - - - - - - - - - - -"
+                pattern: "E4 - G4 - B4 - C5 - D5 - B4 - G4 - - - C5 - A4 - F4 - - - E4 - D4 - C4 - - -"
             },
             {
-                // Woodwind Duet (Clarinet)
+                // Clarinet - Harmony layer
                 instrumentId: 'inst_real_clarinet', vol: 0.5,
-                pattern: "C4 - - - - - - - - - - - - - - - B3 - - - - - - - - - - - - - - - A3 - - - - - - - - - - - - - - - G3 - - - - - - - - - - - - - - - C4 - - - - - - - - - - - - - - - B3 - - - - - - - - - - - - - - - A3 - - - - - - - - - - - - - - - G3 - - - - - - - - - - - - - - -"
+                pattern: "C4 - - - - - - - B3 - - - - - - - A3 - - - - - - - G3 - - - - - - -"
             },
             {
-                // Piano Sparse Chords
+                // Piano - Raindrops
                 instrumentId: 'inst_real_piano', vol: 0.4,
-                pattern: "C4 E4 G4 - - - - - - - - - - - - - B3 D4 G4 - - - - - - - - - - - - - A3 C4 F4 - - - - - - - - - - - - - G3 C4 E4 - - - - - - - - - - - - - C4 E4 G4 - - - - - - - - - - - - - B3 D4 G4 - - - - - - - - - - - - - A3 C4 F4 - - - - - - - - - - - - - G3 C4 E4 - - - - - - - - - - - - -"
+                pattern: "- - G4 - - - E4 - - - D4 - - - B3 - - - C4 - - - A3 - - - G3 - - - C4 -"
+            },
+            {
+                // Glass Shimmer - High texture
+                instrumentId: 'inst_glass_bell', vol: 0.35,
+                pattern: "E5 G5 B5 - E5 G5 B5 - E5 G5 B5 - E5 G5 B5 - E5 G5 B5 - E5 G5 B5 - E5 G5 B5 - E5 G5 B5 -"
             }
         ]
     },
@@ -313,24 +368,29 @@ const DEFAULT_MELODIES = [
         bpm: 90,
         tracks: [
             {
-                // Dark Pad Base
+                // Dark Pad - Moving 5ths
                 instrumentId: 'inst_pad_dark', vol: 0.5,
-                pattern: "D3 - - - - - - - A3 - - - - - - - B3 - - - - - - - F#3 - - - - - - - G3 - - - - - - - D3 - - - - - - - A3 - - - - - - - A2 - - - - - - - D3 - - - - - - - A3 - - - - - - - B3 - - - - - - - F#3 - - - - - - - G3 - - - - - - - D3 - - - - - - - A3 - - - - - - - D3 - - - - - - -"
+                pattern: "D3 A3 - - - - - - A3 E4 - - - - - - B3 F#4 - - - - - - G3 D4 - - - - - -"
             },
             {
-                // HyperSaw Lead (Reverb-like)
+                // HyperSaw - Filter sweep simulation (via notes)
                 instrumentId: 'inst_hyper_lead', vol: 0.3,
-                pattern: "- - F#4 - - - A4 - - - D5 - - - A4 - - - F#4 - - - D4 - - - F#4 - - - A4 - - - B4 - - - G4 - - - D4 - - - G4 - - - E4 - - - C#4 - - - E4 - - - A4 - - - F#4 - - - A4 - - - D5 - - - A4 - - - F#4 - - - D4 - - - F#4 - - - A4 - - - B4 - - - G4 - - - D4 - - - G4 - - - E4 - - - C#4 - - - E4 - - - D4 -"
+                pattern: "F#4 - A4 - D5 - - - E5 - C#5 - A4 - - - F#5 - D5 - B4 - - - G4 - B4 - D5 - - -"
             },
             {
-                // Real Violin Sustains
+                // Violin - Long bows
                 instrumentId: 'inst_real_violin', vol: 0.4,
-                pattern: "F#3 - - - - - - - - - - - - - - - F#3 - - - - - - - - - - - - - - - G3 - - - - - - - - - - - - - - - E3 - - - - - - - - - - - - - - - F#3 - - - - - - - - - - - - - - - F#3 - - - - - - - - - - - - - - - G3 - - - - - - - - - - - - - - - E3 - - - - - - - - - - - - - - -"
+                pattern: "F#4 - - - - - - - E4 - - - - - - - D4 - - - - - - - B3 - - - - - - -"
             },
             {
-                // Real Piano Chords
+                // Piano - Sparse high notes
                 instrumentId: 'inst_real_piano', vol: 0.5,
-                pattern: "D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - C#4 - - - C#4 - - - C#4 - - - C#4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - D4 - - - C#4 - - - C#4 - - - C#4 - - - C#4 - - -"
+                pattern: "- - - - A5 - - - - - - - E5 - - - - - - - F#5 - - - - - - - G5 - - - -"
+            },
+            {
+                // Bass - Root motion
+                instrumentId: 'inst_real_bass', vol: 0.5,
+                pattern: "D2 - - - - - - - A1 - - - - - - - B1 - - - - - - - G1 - - - - - - -"
             }
         ]
     },
@@ -340,24 +400,29 @@ const DEFAULT_MELODIES = [
         bpm: 60,
         tracks: [
             {
-                // Sub Bass (Filtered)
+                // Sub Bass - Deep pulse
                 instrumentId: 'inst_real_bass', vol: 0.6,
-                pattern: "C2 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - G1 - - - - - - - - - - - - - - - A#1 - - - - - - - - - - - - - - - C2 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - G1 - - - - - - - - - - - - - - - A#1 - - - - - - - - - - - - - - -"
+                pattern: "C2 - - - - - - - G1 - - - - - - - A#1 - - - - - - - F1 - - - - - - -"
             },
             {
-                // Watery E-Piano
+                // E-Piano - Ripples (Triplets feel)
                 instrumentId: 'inst_epiano', vol: 0.5,
-                pattern: "C4 - D#4 - G4 - C5 - G4 - D#4 - C4 - - - C4 - D#4 - G4 - C5 - G4 - D#4 - C4 - - - C4 - D#4 - G#4 - C5 - G#4 - D#4 - C4 - - - A#3 - D4 - F4 - A#4 - F4 - D4 - A#3 - - - C4 - D#4 - G4 - C5 - G4 - D#4 - C4 - - - C4 - D#4 - G4 - C5 - G4 - D#4 - C4 - - - C4 - D#4 - G#4 - C5 - G#4 - D#4 - C4 - - - A#3 - D4 - F4 - A#4 - F4 - D4 - A#3 - - -"
+                pattern: "C4 D#4 G4 C4 D#4 G4 A#3 D4 F4 A#3 D4 F4 G#3 C4 D#4 G#3 C4 D#4 G3 A#3 D4 G3 A#3 D4"
             },
             {
-                // Echoing Flute
+                // Flute - Whale song imitation
                 instrumentId: 'inst_real_flute', vol: 0.5,
-                pattern: "- - - - G4 - - - - - - - C5 - - - - - - - - - - - - - - - D#5 - - - - - - - C5 - - - - - - - F4 - - - - - - - D4 - - - - - - - G4 - - - - - - - C5 - - - - - - - - - - - - - - - D#5 - - - - - - - C5 - - - - - - - F4 - - - - - - - D4 - - -"
+                pattern: "C5 - - - - - - - - - - - A#4 - - - G#4 - - - - - - - G4 - - - - - - -"
             },
             {
-                // Bubble Bells
+                // Bubble Bells - Random droplets
                 instrumentId: 'inst_glass_bell', vol: 0.3,
-                pattern: "C5 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - C5 - - - - - - - - - - - - - - - C5 - - - - - - - - - - - - - - - C5 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - C5 - - - - - - - - - - - - - - - C5 - - - - - - - - - - - - - - -"
+                pattern: "- - C5 - - - - - - - G4 - - - - - - D5 - - - - - - - - - C5 - - -"
+            },
+            {
+                // Pad - Ocean swell
+                instrumentId: 'inst_ice_pad', vol: 0.45,
+                pattern: "C3 G3 C4 - - - - - A#2 F3 A#3 - - - - - G#2 D#3 G#3 - - - - - G2 D3 G3 - - - - -"
             }
         ]
     }
