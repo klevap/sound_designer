@@ -180,11 +180,9 @@ class AudioEngine {
         });
     }
 
-    // --- UPDATED: PARSE STRINGS TO ARRAYS ---
     playMusic(melody, soundLibrary) {
         if (this.isPlayingMusic) this.stopMusic();
         
-        // Deep copy and parse patterns
         this.currentMelody = JSON.parse(JSON.stringify(melody));
         this.currentMelody.tracks.forEach(t => {
             if (typeof t.pattern === 'string') {
@@ -277,10 +275,10 @@ class AudioEngine {
             }
         });
         const renderedBuffer = await offlineCtx.startRendering();
-        return MusicUtils.bufferToWav(renderedBuffer, renderDur * sampleRate);
+        return MusicUtils.bufferToWav(renderedBuffer);
     }
 
-    // --- UPDATED: PARSE STRINGS FOR RENDER ---
+    // --- UPDATED: SEAMLESS LOOP RENDERING ---
     async renderMelody(melody, soundLibrary) {
         this.soundLibrary = soundLibrary;
         
@@ -297,15 +295,50 @@ class AudioEngine {
         let maxSteps = 0;
         this.currentMelody.tracks.forEach(t => { if (t.active !== false && t.pattern.length > maxSteps) maxSteps = t.pattern.length; });
         if (maxSteps === 0) maxSteps = 16;
-        const duration = (maxSteps * stepTime) + 4.0;
+
+        // 1. Calculate exact loop duration
+        const loopDuration = maxSteps * stepTime;
+        
+        // 2. Add tail duration (for reverb/release) to capture the "spillover"
+        const tailDuration = 4.0; 
+        const totalRenderDuration = loopDuration + tailDuration;
+        
         const sampleRate = 44100;
-        const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
+        // Create context for the full duration (Loop + Tail)
+        const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalRenderDuration * sampleRate), sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
+
+        // Schedule only the steps within the loop
         for (let step = 0; step < maxSteps; step++) {
             const time = step * stepTime;
             this.scheduleStep(step, time, stepTime, offlineCtx, offlineCtx.destination, offlineNoiseBuffer);
         }
+
+        // Render
         const renderedBuffer = await offlineCtx.startRendering();
-        return MusicUtils.bufferToWav(renderedBuffer, duration * sampleRate);
+
+        // 3. "Wrap" the tail: Mix the audio from the tail section back into the start
+        const loopSamples = Math.floor(loopDuration * sampleRate);
+        const finalBuffer = this.ctx.createBuffer(2, loopSamples, sampleRate);
+
+        for (let channel = 0; channel < 2; channel++) {
+            const sourceData = renderedBuffer.getChannelData(channel);
+            const targetData = finalBuffer.getChannelData(channel);
+
+            // Copy the main body
+            for (let i = 0; i < loopSamples; i++) {
+                targetData[i] = sourceData[i];
+            }
+
+            // Mix the tail into the beginning
+            // We go from loopSamples to the end of the rendered buffer
+            const tailSamples = renderedBuffer.length - loopSamples;
+            for (let i = 0; i < tailSamples && i < loopSamples; i++) {
+                targetData[i] += sourceData[loopSamples + i];
+            }
+        }
+
+        // Return the perfectly looped buffer
+        return MusicUtils.bufferToWav(finalBuffer);
     }
 }

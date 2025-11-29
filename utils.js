@@ -13,12 +13,12 @@ const MusicUtils = {
         return this.A4 * Math.pow(2, semitones / 12);
     },
 
-    // Исправленная функция: теперь она игнорирует второй аргумент len
-    // и берет точную длину из самого буфера (abuffer.length)
+    // Converts AudioBuffer to WAV Blob
+    // Uses the exact length of the buffer provided
     bufferToWav(abuffer) {
         const numOfChan = abuffer.numberOfChannels;
-        const len = abuffer.length; // Берем точное количество сэмплов
-        const length = len * numOfChan * 2 + 44; // 2 байта на сэмпл + 44 байта заголовок
+        const len = abuffer.length;
+        const length = len * numOfChan * 2 + 44;
         const buffer = new ArrayBuffer(length);
         const view = new DataView(buffer);
         const channels = [];
@@ -40,7 +40,7 @@ const MusicUtils = {
         setUint32(abuffer.sampleRate);
         setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
         setUint16(numOfChan * 2); // block-align
-        setUint16(16); // 16-bit (hardcoded in this writer)
+        setUint16(16); // 16-bit
 
         // data chunk identifier
         setUint32(0x61746164); // "data" - chunk
@@ -72,9 +72,9 @@ const MusicUtils = {
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
-        document.body.appendChild(a); // Firefox fix
+        document.body.appendChild(a); 
         a.click();
-        document.body.removeChild(a); // Cleanup
+        document.body.removeChild(a); 
         URL.revokeObjectURL(url);
     }
 };
