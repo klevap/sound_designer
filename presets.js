@@ -3,8 +3,8 @@
  */
 
 // Helper functions
-const _tone = (wave, start, end, dur, vol) => ({ 
-    type: 'tone', active: true, wave, start, end, dur, vol, 
+const _tone = (wave, start, end, dur, vol, attack = 0.01) => ({ 
+    type: 'tone', active: true, wave, start, end, dur, vol, attack,
     shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 
 });
 
@@ -13,6 +13,56 @@ const _noise = (dur, vol, filter) => ({
 });
 
 const DEFAULT_SOUNDS = [
+    // --- MUSICAL INSTRUMENTS (NEW) ---
+    {
+        id: 'inst_str_ens', name: 'Inst - Strings - Ensemble', desc: 'Slow attack string section.',
+        layers: [
+            { ..._tone('violin', 440, 440, 0.8, 0.4, 0.4), fmActive: true, fmRatio: 1.01, fmDepth: 5 }, // Detuned
+            { ..._tone('sawtooth', 440, 440, 0.8, 0.3, 0.4), fmActive: true, fmRatio: 0.99, fmDepth: 5 }
+        ]
+    },
+    {
+        id: 'inst_str_pizz', name: 'Inst - Strings - Pizzicato', desc: 'Short plucked strings.',
+        layers: [
+            { ..._tone('triangle', 440, 440, 0.15, 0.6, 0.01) },
+            { ..._tone('sawtooth', 440, 440, 0.15, 0.3, 0.01) }
+        ]
+    },
+    {
+        id: 'inst_flute', name: 'Inst - Winds - Flute', desc: 'Breathy flute sound.',
+        layers: [
+            { ..._tone('triangle', 440, 440, 0.6, 0.5, 0.1) },
+            _noise(0.1, 0.1, 3000) // Breath attack
+        ]
+    },
+    {
+        id: 'inst_brass', name: 'Inst - Winds - Brass Hit', desc: 'Punchy synth brass.',
+        layers: [
+            { ..._tone('sawtooth', 440, 440, 0.3, 0.5, 0.05), shapeParam: 0.8 },
+            { ..._tone('trapezoid', 440, 440, 0.3, 0.4, 0.05), shapeParam: 0.3 }
+        ]
+    },
+    {
+        id: 'inst_epiano', name: 'Inst - Keys - E-Piano', desc: 'FM Bell-like keys.',
+        layers: [
+            { ..._tone('sine', 440, 440, 0.5, 0.6, 0.01), fmActive: true, fmRatio: 4.0, fmDepth: 150 }
+        ]
+    },
+    {
+        id: 'inst_organ', name: 'Inst - Keys - Church Organ', desc: 'Rich harmonic organ.',
+        layers: [
+            { ..._tone('organ', 440, 440, 0.8, 0.5, 0.1) },
+            { ..._tone('sine', 880, 880, 0.8, 0.2, 0.1) } // Octave up
+        ]
+    },
+    {
+        id: 'inst_pad_dark', name: 'Inst - Pad - Dark Space', desc: 'Low, slow moving atmosphere.',
+        layers: [
+            { ..._tone('trapezoid', 220, 220, 1.5, 0.4, 0.8), shapeParam: 0.1 },
+            { ..._tone('sine', 220, 220, 1.5, 0.3, 0.8), fmActive: true, fmRatio: 0.5, fmDepth: 50 }
+        ]
+    },
+
     // --- JUMP VARIATIONS ---
     {
         id: 'jump_1', name: 'Jump - Classic - Standard', desc: 'Standard platformer jump. Sine wave slide.',

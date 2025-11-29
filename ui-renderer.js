@@ -87,6 +87,7 @@ const UIRenderer = {
                 }
                 const fmChecked = l.fmActive ? 'checked' : '';
                 const fmDisplay = l.fmActive ? 'grid' : 'none';
+                const attackVal = l.attack !== undefined ? l.attack : 0.01;
 
                 return `
                 <div class="layer-card type-tone ${activeClass}">
@@ -103,14 +104,15 @@ const UIRenderer = {
                             <label>Waveform</label>
                             <select onchange="app.updateLayer(${idx}, 'wave', this.value)">
                                 <optgroup label="Standard"><option value="sine" ${l.wave==='sine'?'selected':''}>Sine</option><option value="square" ${l.wave==='square'?'selected':''}>Square</option><option value="sawtooth" ${l.wave==='sawtooth'?'selected':''}>Sawtooth</option><option value="triangle" ${l.wave==='triangle'?'selected':''}>Triangle</option></optgroup>
-                                <optgroup label="Advanced"><option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option><option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option><option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option><option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25%</option><option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon</option></optgroup>
+                                <optgroup label="Advanced"><option value="violin" ${l.wave==='violin'?'selected':''}>Violin</option><option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option><option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option><option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option><option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25%</option><option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon</option></optgroup>
                                 <optgroup label="Shapers"><option value="powersine" ${l.wave==='powersine'?'selected':''}>Power Sine</option><option value="bitcrush" ${l.wave==='bitcrush'?'selected':''}>BitCrush</option><option value="foldback" ${l.wave==='foldback'?'selected':''}>Wavefolder</option></optgroup>
                             </select>
                         </div>
                         ${shapeControl}
                         <div class="control-group"><label>Start Hz <span class="val-display">${l.start}</span></label><input type="range" min="50" max="3000" step="10" value="${l.start}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'start', this.value)"></div>
                         <div class="control-group"><label>End Hz <span class="val-display">${l.end}</span></label><input type="range" min="10" max="3000" step="10" value="${l.end}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'end', this.value)"></div>
-                        <div class="control-group"><label>Duration <span class="val-display">${l.dur}</span></label><input type="range" min="0.01" max="1.0" step="0.01" value="${l.dur}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'dur', this.value)"></div>
+                        <div class="control-group"><label>Attack (s) <span class="val-display">${attackVal}</span></label><input type="range" min="0.01" max="1.0" step="0.01" value="${attackVal}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'attack', this.value)"></div>
+                        <div class="control-group"><label>Duration (s) <span class="val-display">${l.dur}</span></label><input type="range" min="0.01" max="2.0" step="0.01" value="${l.dur}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'dur', this.value)"></div>
                         <div class="control-group"><label>Volume <span class="val-display">${l.vol}</span></label><input type="range" min="0" max="1" step="0.05" value="${l.vol}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'vol', this.value)"></div>
                     </div>
                     <div class="fm-section" style="display:${fmDisplay}">

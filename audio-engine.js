@@ -47,6 +47,13 @@ class AudioEngine {
         return ctx.createPeriodicWave(real, imag);
     }
     getBassoonWave(ctx) { return ctx.createPeriodicWave(new Float32Array(10).fill(0), new Float32Array([0,1.0,0.2,0.8,0.1,0.4,0.1,0.2,0.0,0.1])); }
+    
+    // NEW: Violin-like wave (Rich Sawtooth variation)
+    getViolinWave(ctx) {
+        const num = 32; const real = new Float32Array(num); const imag = new Float32Array(num);
+        for (let i = 1; i < num; i++) { imag[i] = 1 / (i * 0.8); } // Brighter than standard saw
+        return ctx.createPeriodicWave(real, imag);
+    }
 
     getPowerCurve(amount) {
         const key = `pow_${amount}`; if (this.shaperCache[key]) return this.shaperCache[key];
@@ -80,6 +87,7 @@ class AudioEngine {
         else if (params.wave === 'metal') osc.setPeriodicWave(this.getMetallicWave(ctx));
         else if (params.wave === 'pulse25') osc.setPeriodicWave(this.getPulseWave(ctx));
         else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
+        else if (params.wave === 'violin') osc.setPeriodicWave(this.getViolinWave(ctx));
         else osc.type = 'sine';
 
         osc.frequency.setValueAtTime(params.start, t);
@@ -107,8 +115,21 @@ class AudioEngine {
             osc.connect(shaper); outputNode = shaper;
         }
 
+        // VOLUME ENVELOPE LOGIC (Updated for Attack)
+        const attack = params.attack !== undefined ? params.attack : 0.01;
+        const release = 0.05;
+        const sustainTime = Math.max(0, params.dur - attack - release);
+
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(params.vol, t + 0.01);
+        
+        if (attack > 0) {
+            gain.gain.linearRampToValueAtTime(params.vol, t + attack);
+        } else {
+            gain.gain.setValueAtTime(params.vol, t);
+        }
+
+        // Sustain -> Release
+        gain.gain.setValueAtTime(params.vol, t + attack + sustainTime);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
 
         outputNode.connect(gain); gain.connect(dest);
@@ -124,8 +145,11 @@ class AudioEngine {
         filter.frequency.setValueAtTime(params.filter, t);
         filter.frequency.exponentialRampToValueAtTime(10, t + params.dur);
         const gain = ctx.createGain();
+        
+        // Simple envelope for noise
         gain.gain.setValueAtTime(params.vol, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
+        
         src.connect(filter); filter.connect(gain); gain.connect(dest);
         src.start(t); src.stop(t + params.dur);
     }
@@ -180,7 +204,6 @@ class AudioEngine {
         const stepTime = (60.0 / bpm) / 4;
 
         while (this.nextNoteTime < this.ctx.currentTime + scheduleAheadTime) {
-            // ИСПРАВЛЕНИЕ: Передаем this.ctx, this.masterGain и this.liveNoiseBuffer
             this.scheduleStep(this.currentStep, this.nextNoteTime, stepTime, this.ctx, this.masterGain, this.liveNoiseBuffer);
             this.nextNoteTime += stepTime;
             this.currentStep++;
@@ -211,14 +234,22 @@ class AudioEngine {
                             if (l.active === false) return;
                             const p = { ...l }; p.vol *= vol;
                             if (p.type === 'tone') {
-                                p.start = freq; p.end = freq; p.dur = stepDuration * 0.9;
+                                // For musical notes, we usually want steady pitch unless it's a specific SFX
+                                // If the preset has start!=end (slide), we might want to keep it relative or flatten it.
+                                // Here we flatten it to the note frequency for musical consistency.
+                                p.start = freq; p.end = freq; 
+                                
+                                // Allow notes to be longer than step if needed, but default to step
+                                // If the sound has a very long defined duration (like a pad), use that, otherwise use step
+                                p.dur = Math.max(p.dur, stepDuration * 1.5); 
+                                
                                 this.scheduleTone(ctx, dest, p, time);
                             } else {
                                 this.scheduleNoise(ctx, dest, p, noiseBuf, time);
                             }
                         });
                     } else {
-                        // Percussion Hit
+                        // Percussion Hit (No pitch change)
                         sound.layers.forEach(l => {
                             if (l.active !== false) {
                                 const lp = {...l}; lp.vol *= vol;
@@ -238,7 +269,7 @@ class AudioEngine {
         sound.layers.forEach(l => { if (l.active !== false && l.dur > maxDur) maxDur = l.dur; });
         if (maxDur === 0) return;
 
-        const renderDur = maxDur + 0.1;
+        const renderDur = maxDur + 0.5; // Extra tail
         const sampleRate = 44100;
         const offlineCtx = new OfflineAudioContext(1, sampleRate * renderDur, sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
@@ -256,9 +287,8 @@ class AudioEngine {
 
     // --- EXPORT MELODY ---
     async renderMelody(melody, soundLibrary) {
-        // ИСПРАВЛЕНИЕ: Устанавливаем библиотеку звуков для использования в scheduleStep
         this.soundLibrary = soundLibrary;
-        this.currentMelody = melody; // Также нужно для scheduleStep
+        this.currentMelody = melody;
 
         const bpm = melody.bpm;
         const stepTime = (60.0 / bpm) / 4;
@@ -269,7 +299,7 @@ class AudioEngine {
         });
         if (maxSteps === 0) maxSteps = 16;
 
-        const duration = (maxSteps * stepTime) + 2.0;
+        const duration = (maxSteps * stepTime) + 4.0; // Extra tail for reverb/release
         const sampleRate = 44100;
         const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);

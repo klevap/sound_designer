@@ -47,7 +47,7 @@ class App {
         const id = 'snd_' + Date.now();
         this.sounds.push({
             id: id, name: 'New - Category - Sound', desc: 'Description...',
-            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 }]
+            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 }]
         });
         this.selectedSoundId = id;
         this.renderSoundList();
@@ -76,7 +76,7 @@ class App {
     addLayer(type) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (!s) return;
-        if (type === 'tone') s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 });
+        if (type === 'tone') s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 });
         else s.layers.push({ type: 'noise', active: true, dur: 0.2, vol: 0.5, filter: 1000 });
         this.renderEditor();
     }
@@ -94,7 +94,7 @@ class App {
     updateLayer(idx, key, value) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (s && s.layers[idx]) {
-            if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth'].includes(key)) value = parseFloat(value);
+            if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack'].includes(key)) value = parseFloat(value);
             s.layers[idx][key] = value;
             if (key === 'active' || key === 'wave' || key === 'fmActive') this.renderEditor();
             else this.updateCodeOutput(s);
