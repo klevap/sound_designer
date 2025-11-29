@@ -13,9 +13,12 @@ const MusicUtils = {
         return this.A4 * Math.pow(2, semitones / 12);
     },
 
-    bufferToWav(abuffer, len) {
+    // Исправленная функция: теперь она игнорирует второй аргумент len
+    // и берет точную длину из самого буфера (abuffer.length)
+    bufferToWav(abuffer) {
         const numOfChan = abuffer.numberOfChannels;
-        const length = len * numOfChan * 2 + 44;
+        const len = abuffer.length; // Берем точное количество сэмплов
+        const length = len * numOfChan * 2 + 44; // 2 байта на сэмпл + 44 байта заголовок
         const buffer = new ArrayBuffer(length);
         const view = new DataView(buffer);
         const channels = [];
@@ -24,9 +27,12 @@ const MusicUtils = {
         function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
         function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
+        // RIFF identifier
         setUint32(0x46464952); // "RIFF"
         setUint32(length - 8); // file length - 8
+        // RIFF type
         setUint32(0x45564157); // "WAVE"
+        // format chunk identifier
         setUint32(0x20746d66); // "fmt " chunk
         setUint32(16); // length = 16
         setUint16(1); // PCM (uncompressed)
@@ -34,22 +40,30 @@ const MusicUtils = {
         setUint32(abuffer.sampleRate);
         setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
         setUint16(numOfChan * 2); // block-align
-        setUint16(16); // 16-bit
+        setUint16(16); // 16-bit (hardcoded in this writer)
 
+        // data chunk identifier
         setUint32(0x61746164); // "data" - chunk
         setUint32(length - pos - 4); // chunk length
 
-        for(i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+        // Get channel data
+        for(i = 0; i < abuffer.numberOfChannels; i++) {
+            channels.push(abuffer.getChannelData(i));
+        }
 
+        // Interleave data
         while(pos < length) {
             for(i = 0; i < numOfChan; i++) {
+                // Clamp the sample to [-1, 1]
                 sample = Math.max(-1, Math.min(1, channels[i][offset])); 
+                // Convert float to 16-bit PCM
                 sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; 
                 view.setInt16(pos, sample, true);
                 pos += 2;
             }
             offset++;
         }
+        
         return new Blob([buffer], {type: "audio/wav"});
     },
 
@@ -58,6 +72,9 @@ const MusicUtils = {
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
+        document.body.appendChild(a); // Firefox fix
         a.click();
+        document.body.removeChild(a); // Cleanup
+        URL.revokeObjectURL(url);
     }
 };
