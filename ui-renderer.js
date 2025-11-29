@@ -87,7 +87,7 @@ const UIRenderer = {
                     shapeControl = `<div class="control-group"><label>${label} <span class="val-display">${l.shapeParam}</span></label><input type="range" min="0" max="1" step="0.05" value="${l.shapeParam}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'shapeParam', this.value)"></div>`;
                 }
                 
-                // UPDATED: HyperSaw Specific Controls
+                // HyperSaw Controls
                 if (l.wave === 'hypersaw') {
                     const odd = l.hyperOdd !== undefined ? l.hyperOdd : 0.5;
                     const even = l.hyperEven !== undefined ? l.hyperEven : 0.5;
@@ -97,8 +97,24 @@ const UIRenderer = {
                     `;
                 }
 
+                // NEW: Pulse Width Control
+                if (l.wave === 'pulse') {
+                    const width = l.pulseWidth !== undefined ? l.pulseWidth : 0.5;
+                    shapeControl = `<div class="control-group"><label>Pulse Width <span class="val-display">${width}</span></label><input type="range" min="0.01" max="0.99" step="0.01" value="${width}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'pulseWidth', this.value)"></div>`;
+                }
+
                 const fmChecked = l.fmActive ? 'checked' : '';
                 const fmDisplay = l.fmActive ? 'grid' : 'none';
+                
+                // NEW: Filter Controls
+                const filterChecked = l.filterActive ? 'checked' : '';
+                const filterDisplay = l.filterActive ? 'grid' : 'none';
+                const filterFreq = l.filterFreq || 2000;
+                const filterQ = l.filterQ || 0;
+                const filterEnv = l.filterEnv || 0;
+                const filterAttack = l.filterAttack || 0.05;
+                const filterDecay = l.filterDecay || 0.1;
+
                 const attackVal = l.attack !== undefined ? l.attack : 0.01;
 
                 return `
@@ -106,6 +122,7 @@ const UIRenderer = {
                     <div class="layer-header">
                         <span>TONE LAYER ${idx+1}</span>
                         <div class="layer-actions">
+                            <label class="toggle-label"><input type="checkbox" ${filterChecked} onchange="app.updateLayer(${idx}, 'filterActive', this.checked)"> FILTER</label>
                             <label class="toggle-label"><input type="checkbox" ${fmChecked} onchange="app.updateLayer(${idx}, 'fmActive', this.checked)"> FM</label>
                             <label class="toggle-label"><input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE</label>
                             <button class="btn btn-red btn-sm" onclick="app.removeLayer(${idx})">X</button>
@@ -115,8 +132,8 @@ const UIRenderer = {
                         <div class="control-group">
                             <label>Waveform</label>
                             <select onchange="app.updateLayer(${idx}, 'wave', this.value)">
-                                <optgroup label="Standard"><option value="sine" ${l.wave==='sine'?'selected':''}>Sine</option><option value="square" ${l.wave==='square'?'selected':''}>Square</option><option value="sawtooth" ${l.wave==='sawtooth'?'selected':''}>Sawtooth</option><option value="triangle" ${l.wave==='triangle'?'selected':''}>Triangle</option></optgroup>
-                                <optgroup label="Advanced"><option value="hypersaw" ${l.wave==='hypersaw'?'selected':''}>HyperSaw</option><option value="violin" ${l.wave==='violin'?'selected':''}>Violin</option><option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option><option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option><option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option><option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25%</option><option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon</option></optgroup>
+                                <optgroup label="Standard"><option value="sine" ${l.wave==='sine'?'selected':''}>Sine</option><option value="square" ${l.wave==='square'?'selected':''}>Square</option><option value="sawtooth" ${l.wave==='sawtooth'?'selected':''}>Sawtooth</option><option value="triangle" ${l.wave==='triangle'?'selected':''}>Triangle</option><option value="pulse" ${l.wave==='pulse'?'selected':''}>Pulse (Variable)</option></optgroup>
+                                <optgroup label="Advanced"><option value="hypersaw" ${l.wave==='hypersaw'?'selected':''}>HyperSaw</option><option value="violin" ${l.wave==='violin'?'selected':''}>Violin</option><option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option><option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option><option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option><option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon</option></optgroup>
                                 <optgroup label="Shapers"><option value="powersine" ${l.wave==='powersine'?'selected':''}>Power Sine</option><option value="bitcrush" ${l.wave==='bitcrush'?'selected':''}>BitCrush</option><option value="foldback" ${l.wave==='foldback'?'selected':''}>Wavefolder</option></optgroup>
                             </select>
                         </div>
@@ -127,7 +144,22 @@ const UIRenderer = {
                         <div class="control-group"><label>Duration (s) <span class="val-display">${l.dur}</span></label><input type="range" min="0.01" max="2.0" step="0.01" value="${l.dur}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'dur', this.value)"></div>
                         <div class="control-group"><label>Volume <span class="val-display">${l.vol}</span></label><input type="range" min="0" max="1" step="0.05" value="${l.vol}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'vol', this.value)"></div>
                     </div>
+                    
+                    <!-- FILTER SECTION -->
+                    <div class="fm-section" style="display:${filterDisplay}; border-left-color: #e67e22;">
+                        <div style="font-size:10px; color:#e67e22; font-weight:bold; margin-bottom:5px;">DYNAMIC FILTER (VCF)</div>
+                        <div class="fm-grid">
+                            <div class="control-group"><label>Cutoff Hz <span class="val-display">${filterFreq}</span></label><input type="range" min="50" max="10000" step="50" value="${filterFreq}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filterFreq', this.value)"></div>
+                            <div class="control-group"><label>Resonance (Q) <span class="val-display">${filterQ}</span></label><input type="range" min="0" max="20" step="0.5" value="${filterQ}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filterQ', this.value)"></div>
+                            <div class="control-group"><label>Env Amount <span class="val-display">${filterEnv}</span></label><input type="range" min="-5000" max="5000" step="100" value="${filterEnv}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filterEnv', this.value)"></div>
+                            <div class="control-group"><label>Env Attack <span class="val-display">${filterAttack}</span></label><input type="range" min="0.01" max="1.0" step="0.01" value="${filterAttack}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filterAttack', this.value)"></div>
+                            <div class="control-group"><label>Env Decay <span class="val-display">${filterDecay}</span></label><input type="range" min="0.01" max="1.0" step="0.01" value="${filterDecay}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'filterDecay', this.value)"></div>
+                        </div>
+                    </div>
+
+                    <!-- FM SECTION -->
                     <div class="fm-section" style="display:${fmDisplay}">
+                        <div style="font-size:10px; color:var(--accent); font-weight:bold; margin-bottom:5px;">FREQUENCY MODULATION (FM)</div>
                         <div class="fm-grid">
                             <div class="control-group"><label>FM Ratio <span class="val-display">${l.fmRatio}x</span></label><input type="range" min="0.5" max="10" step="0.1" value="${l.fmRatio}" oninput="this.previousElementSibling.children[0].innerText=this.value+'x'; app.updateLayer(${idx}, 'fmRatio', this.value)"></div>
                             <div class="control-group"><label>FM Depth <span class="val-display">${l.fmDepth}</span></label><input type="range" min="0" max="2000" step="10" value="${l.fmDepth}" oninput="this.previousElementSibling.children[0].innerText=this.value; app.updateLayer(${idx}, 'fmDepth', this.value)"></div>

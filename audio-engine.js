@@ -7,7 +7,7 @@ class AudioEngine {
         
         this.liveNoiseBuffer = this.createNoiseBuffer(this.ctx);
         this.shaperCache = {};
-        this.waveCache = {}; // Cache for PeriodicWaves to avoid garbage collection churn
+        this.waveCache = {}; 
 
         // Sequencer State
         this.isPlayingMusic = false;
@@ -28,7 +28,45 @@ class AudioEngine {
         return buffer;
     }
 
-    // --- WAVE GENERATORS & SHAPERS ---
+    // --- WAVE GENERATORS ---
+    
+    // NEW: Variable Pulse Wave (PWM capable)
+    getVariablePulseWave(ctx, width) {
+        // Cache key based on width (rounded to 2 decimals to save cache)
+        const w = Math.round(width * 100) / 100;
+        const key = `pulse_${w}`;
+        if (this.waveCache[key]) return this.waveCache[key];
+
+        const num = 64;
+        const real = new Float32Array(num);
+        const imag = new Float32Array(num);
+        
+        // Fourier series for Pulse Wave: 2/(n*pi) * sin(n * pi * width)
+        for (let n = 1; n < num; n++) {
+            imag[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * w);
+        }
+
+        const wave = ctx.createPeriodicWave(real, imag);
+        this.waveCache[key] = wave;
+        return wave;
+    }
+
+    getHyperSawWave(ctx, oddExp, evenExp) {
+        const key = `hypersaw_${oddExp.toFixed(2)}_${evenExp.toFixed(2)}`;
+        if (this.waveCache[key]) return this.waveCache[key];
+
+        const num = 64; 
+        const real = new Float32Array(num); 
+        const imag = new Float32Array(num);
+        for (let i = 1; i < num; i++) { 
+            const exp = (i % 2 === 0) ? evenExp : oddExp;
+            imag[i] = 1 / Math.pow(i, exp);
+        }
+        const wave = ctx.createPeriodicWave(real, imag);
+        this.waveCache[key] = wave;
+        return wave;
+    }
+
     getTrapezoidWave(ctx, sharpness) {
         const numCoeffs = 64; const real = new Float32Array(numCoeffs); const imag = new Float32Array(numCoeffs);
         for (let i = 1; i < numCoeffs; i += 2) {
@@ -42,39 +80,11 @@ class AudioEngine {
         for(let i=1; i<num; i++) { if (i % 2 !== 0 && i > 5) imag[i] = 0.5; if (i === 1) imag[i] = 1; }
         return ctx.createPeriodicWave(real, imag);
     }
-    getPulseWave(ctx) {
-        const num = 64; const real = new Float32Array(num); const imag = new Float32Array(num);
-        for (let i = 1; i < num; i++) imag[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * 0.25);
-        return ctx.createPeriodicWave(real, imag);
-    }
     getBassoonWave(ctx) { return ctx.createPeriodicWave(new Float32Array(10).fill(0), new Float32Array([0,1.0,0.2,0.8,0.1,0.4,0.1,0.2,0.0,0.1])); }
-    
     getViolinWave(ctx) {
         const num = 32; const real = new Float32Array(num); const imag = new Float32Array(num);
         for (let i = 1; i < num; i++) { imag[i] = 1 / (i * 0.8); }
         return ctx.createPeriodicWave(real, imag);
-    }
-
-    // UPDATED: HyperSaw with variable exponents for Odd/Even harmonics
-    getHyperSawWave(ctx, oddExp, evenExp) {
-        // Create a cache key based on parameters to avoid re-calculating identical waves
-        const key = `hypersaw_${oddExp.toFixed(2)}_${evenExp.toFixed(2)}`;
-        if (this.waveCache[key]) return this.waveCache[key];
-
-        const num = 64; 
-        const real = new Float32Array(num); 
-        const imag = new Float32Array(num);
-        
-        for (let i = 1; i < num; i++) { 
-            // Determine exponent based on whether harmonic is even or odd
-            const exp = (i % 2 === 0) ? evenExp : oddExp;
-            // Apply formula: 1 / n^x
-            imag[i] = 1 / Math.pow(i, exp);
-        }
-        
-        const wave = ctx.createPeriodicWave(real, imag);
-        this.waveCache[key] = wave;
-        return wave;
     }
 
     getPowerCurve(amount) {
@@ -103,24 +113,29 @@ class AudioEngine {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         
+        // 1. Waveform Selection
         if (['sine', 'square', 'sawtooth', 'triangle'].includes(params.wave)) osc.type = params.wave;
-        else if (params.wave === 'trapezoid') osc.setPeriodicWave(this.getTrapezoidWave(ctx, params.shapeParam));
-        else if (params.wave === 'organ') osc.setPeriodicWave(this.getOrganWave(ctx));
-        else if (params.wave === 'metal') osc.setPeriodicWave(this.getMetallicWave(ctx));
-        else if (params.wave === 'pulse25') osc.setPeriodicWave(this.getPulseWave(ctx));
-        else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
-        else if (params.wave === 'violin') osc.setPeriodicWave(this.getViolinWave(ctx));
+        else if (params.wave === 'pulse') {
+            const width = params.pulseWidth !== undefined ? params.pulseWidth : 0.5;
+            osc.setPeriodicWave(this.getVariablePulseWave(ctx, width));
+        }
         else if (params.wave === 'hypersaw') {
-            // Extract new parameters, default to 0.5 for backward compatibility
             const odd = params.hyperOdd !== undefined ? params.hyperOdd : 0.5;
             const even = params.hyperEven !== undefined ? params.hyperEven : 0.5;
             osc.setPeriodicWave(this.getHyperSawWave(ctx, odd, even));
         }
+        else if (params.wave === 'trapezoid') osc.setPeriodicWave(this.getTrapezoidWave(ctx, params.shapeParam));
+        else if (params.wave === 'organ') osc.setPeriodicWave(this.getOrganWave(ctx));
+        else if (params.wave === 'metal') osc.setPeriodicWave(this.getMetallicWave(ctx));
+        else if (params.wave === 'bassoon') osc.setPeriodicWave(this.getBassoonWave(ctx));
+        else if (params.wave === 'violin') osc.setPeriodicWave(this.getViolinWave(ctx));
         else osc.type = 'sine';
 
+        // 2. Frequency & Pitch Envelope
         osc.frequency.setValueAtTime(params.start, t);
         if (params.start !== params.end) osc.frequency.exponentialRampToValueAtTime(Math.max(1, params.end), t + params.dur);
 
+        // 3. FM Synthesis
         if (params.fmActive) {
             const mod = ctx.createOscillator();
             const modGain = ctx.createGain();
@@ -132,6 +147,8 @@ class AudioEngine {
         }
 
         let outputNode = osc;
+
+        // 4. Waveshapers
         if (params.wave === 'powersine') {
             const shaper = ctx.createWaveShaper(); shaper.curve = this.getPowerCurve(params.shapeParam);
             osc.connect(shaper); outputNode = shaper;
@@ -143,6 +160,36 @@ class AudioEngine {
             osc.connect(shaper); outputNode = shaper;
         }
 
+        // 5. NEW: Dynamic Filter (Subtractive Synthesis)
+        if (params.filterActive) {
+            const filter = ctx.createBiquadFilter();
+            filter.type = params.filterType || 'lowpass';
+            filter.Q.value = params.filterQ || 0;
+            
+            const baseFreq = Math.max(10, params.filterFreq);
+            filter.frequency.setValueAtTime(baseFreq, t);
+
+            // Filter Envelope
+            if (params.filterEnv && params.filterEnv !== 0) {
+                const envAmt = params.filterEnv;
+                const fAttack = params.filterAttack || 0.05;
+                const fDecay = params.filterDecay || 0.1;
+                const fSustain = params.filterSustain !== undefined ? params.filterSustain : 0.5; // 0 to 1 multiplier of envAmt
+                
+                const peakFreq = Math.max(10, Math.min(22000, baseFreq + envAmt));
+                const sustainFreq = Math.max(10, Math.min(22000, baseFreq + (envAmt * fSustain)));
+
+                // Attack
+                filter.frequency.linearRampToValueAtTime(peakFreq, t + fAttack);
+                // Decay to Sustain
+                filter.frequency.exponentialRampToValueAtTime(sustainFreq, t + fAttack + fDecay);
+            }
+
+            outputNode.connect(filter);
+            outputNode = filter;
+        }
+
+        // 6. Amplitude Envelope (VCA)
         const attack = params.attack !== undefined ? params.attack : 0.01;
         const release = 0.05;
         const sustainTime = Math.max(0, params.dur - attack - release);
@@ -298,7 +345,6 @@ class AudioEngine {
 
     async renderMelody(melody, soundLibrary) {
         this.soundLibrary = soundLibrary;
-        
         this.currentMelody = JSON.parse(JSON.stringify(melody));
         this.currentMelody.tracks.forEach(t => {
             if (typeof t.pattern === 'string') {
@@ -332,15 +378,9 @@ class AudioEngine {
         for (let channel = 0; channel < 2; channel++) {
             const sourceData = renderedBuffer.getChannelData(channel);
             const targetData = finalBuffer.getChannelData(channel);
-
-            for (let i = 0; i < loopSamples; i++) {
-                targetData[i] = sourceData[i];
-            }
-
+            for (let i = 0; i < loopSamples; i++) targetData[i] = sourceData[i];
             const tailSamples = renderedBuffer.length - loopSamples;
-            for (let i = 0; i < tailSamples && i < loopSamples; i++) {
-                targetData[i] += sourceData[loopSamples + i];
-            }
+            for (let i = 0; i < tailSamples && i < loopSamples; i++) targetData[i] += sourceData[loopSamples + i];
         }
 
         return MusicUtils.bufferToWav(finalBuffer);

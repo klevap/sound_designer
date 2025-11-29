@@ -47,7 +47,11 @@ class App {
         const id = 'snd_' + Date.now();
         this.sounds.push({
             id: id, name: 'New - Category - Sound', desc: 'Description...',
-            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5 }]
+            layers: [{ 
+                type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, 
+                fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5, pulseWidth: 0.5,
+                filterActive: false, filterFreq: 2000, filterQ: 0, filterEnv: 0, filterAttack: 0.05, filterDecay: 0.1
+            }]
         });
         this.selectedSoundId = id;
         this.renderSoundList();
@@ -76,7 +80,11 @@ class App {
     addLayer(type) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (!s) return;
-        if (type === 'tone') s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5 });
+        if (type === 'tone') s.layers.push({ 
+            type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, attack: 0.01, shapeParam: 0.5, 
+            fmActive: false, fmRatio: 2, fmDepth: 100, hyperOdd: 0.5, hyperEven: 0.5, pulseWidth: 0.5,
+            filterActive: false, filterFreq: 2000, filterQ: 0, filterEnv: 0, filterAttack: 0.05, filterDecay: 0.1
+        });
         else s.layers.push({ type: 'noise', active: true, dur: 0.2, vol: 0.5, filter: 1000 });
         this.renderEditor();
     }
@@ -94,10 +102,17 @@ class App {
     updateLayer(idx, key, value) {
         const s = this.sounds.find(x => x.id === this.selectedSoundId);
         if (s && s.layers[idx]) {
-            // UPDATED: Added hyperOdd and hyperEven to float parsing
-            if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack', 'hyperOdd', 'hyperEven'].includes(key)) value = parseFloat(value);
+            // UPDATED: Added new filter and pulse parameters to float parsing
+            const floatKeys = [
+                'start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth', 'attack', 
+                'hyperOdd', 'hyperEven', 'pulseWidth',
+                'filterFreq', 'filterQ', 'filterEnv', 'filterAttack', 'filterDecay'
+            ];
+            if (floatKeys.includes(key)) value = parseFloat(value);
+            
             s.layers[idx][key] = value;
-            if (key === 'active' || key === 'wave' || key === 'fmActive') this.renderEditor();
+            
+            if (key === 'active' || key === 'wave' || key === 'fmActive' || key === 'filterActive') this.renderEditor();
             else this.updateCodeOutput(s);
         }
     }

@@ -1,12 +1,21 @@
 /**
- * DEFAULT SOUND LIBRARY
+ * DEFAULT SOUND LIBRARY - ULTIMATE EDITION
+ * Includes:
+ * 1. New Realistic Instruments (Subtractive Synthesis & PWM)
+ * 2. HyperSaw Specials
+ * 3. Standard Musical Instruments
+ * 4. Full SFX Suite (Jumps, Shoots, Explosions, Hooks)
  */
 
 // Helper functions
+// Updated to include defaults for Pulse Width and Dynamic Filter
 const _tone = (wave, start, end, dur, vol, attack = 0.01) => ({ 
     type: 'tone', active: true, wave, start, end, dur, vol, attack,
-    shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100,
-    hyperOdd: 0.5, hyperEven: 0.5 // Default for HyperSaw
+    shapeParam: 0.5, 
+    fmActive: false, fmRatio: 2, fmDepth: 100,
+    hyperOdd: 0.5, hyperEven: 0.5, 
+    pulseWidth: 0.5,
+    filterActive: false, filterFreq: 2000, filterQ: 0, filterEnv: 0, filterAttack: 0.05, filterDecay: 0.1
 });
 
 const _noise = (dur, vol, filter) => ({ 
@@ -14,7 +23,69 @@ const _noise = (dur, vol, filter) => ({
 });
 
 const DEFAULT_SOUNDS = [
-    // --- HYPERSAW SPECIALS (UPDATED) ---
+    // --- REALISTIC INSTRUMENTS (NEW: Subtractive & PWM) ---
+    {
+        id: 'inst_real_violin', name: 'Inst - Strings - Violin Solo', desc: 'Expressive violin with vibrato and filter swell.',
+        layers: [
+            { 
+                ..._tone('hypersaw', 440, 440, 0.8, 0.5, 0.15), 
+                hyperOdd: 1.0, hyperEven: 1.0, // Pure Sawtooth
+                fmActive: true, fmRatio: 6.0, fmDepth: 15, // Vibrato
+                filterActive: true, filterFreq: 800, filterQ: 2, filterEnv: 1500, filterAttack: 0.2, filterDecay: 0.3 // Swell
+            }
+        ]
+    },
+    {
+        id: 'inst_real_trumpet', name: 'Inst - Brass - Trumpet', desc: 'Bright brass with opening filter envelope.',
+        layers: [
+            { 
+                ..._tone('sawtooth', 440, 440, 0.4, 0.5, 0.05), 
+                filterActive: true, filterFreq: 400, filterQ: 1, filterEnv: 3000, filterAttack: 0.05, filterDecay: 0.2 // "Wah" effect
+            }
+        ]
+    },
+    {
+        id: 'inst_real_clarinet', name: 'Inst - Winds - Clarinet', desc: 'Woody sound using Pulse wave (approx 50%).',
+        layers: [
+            { 
+                ..._tone('pulse', 440, 440, 0.5, 0.5, 0.08), 
+                pulseWidth: 0.52, // Slightly offset square for realism
+                filterActive: true, filterFreq: 900, filterQ: 0.5, filterEnv: -200, filterAttack: 0.1, filterDecay: 0.1
+            }
+        ]
+    },
+    {
+        id: 'inst_real_flute', name: 'Inst - Winds - Flute Real', desc: 'Breathy flute with noise layer.',
+        layers: [
+            { 
+                ..._tone('triangle', 440, 440, 0.6, 0.5, 0.1),
+                filterActive: true, filterFreq: 1500, filterQ: 0, filterEnv: 0
+            },
+            _noise(0.1, 0.05, 3000) // Breath noise
+        ]
+    },
+    {
+        id: 'inst_real_piano', name: 'Inst - Keys - Piano Real', desc: 'Plucky filter envelope on Pulse wave.',
+        layers: [
+            { 
+                ..._tone('pulse', 440, 440, 0.8, 0.5, 0.01), 
+                pulseWidth: 0.2, // Thin pulse
+                filterActive: true, filterFreq: 600, filterQ: 0, filterEnv: 2000, filterAttack: 0.01, filterDecay: 0.3 // Pluck
+            }
+        ]
+    },
+    {
+        id: 'inst_real_bass', name: 'Inst - Bass - Analog Fat', desc: 'Fat Moog-style bass using PWM and Filter.',
+        layers: [
+            { 
+                ..._tone('pulse', 110, 110, 0.4, 0.6, 0.01), 
+                pulseWidth: 0.4, 
+                filterActive: true, filterFreq: 100, filterQ: 3, filterEnv: 800, filterAttack: 0.01, filterDecay: 0.2 // Resonant pluck
+            }
+        ]
+    },
+
+    // --- HYPERSAW SPECIALS ---
     {
         id: 'inst_hyper_lead', name: 'Inst - Lead - HyperSaw', desc: 'Aggressive, bright lead using 1/sqrt(n).',
         layers: [
@@ -44,7 +115,7 @@ const DEFAULT_SOUNDS = [
         ]
     },
 
-    // --- MUSICAL INSTRUMENTS ---
+    // --- STANDARD MUSICAL INSTRUMENTS ---
     {
         id: 'inst_str_ens', name: 'Inst - Strings - Ensemble', desc: 'Slow attack string section.',
         layers: [
@@ -60,7 +131,7 @@ const DEFAULT_SOUNDS = [
         ]
     },
     {
-        id: 'inst_flute', name: 'Inst - Winds - Flute', desc: 'Breathy flute sound.',
+        id: 'inst_flute', name: 'Inst - Winds - Flute (Legacy)', desc: 'Legacy flute sound.',
         layers: [
             { ..._tone('triangle', 440, 440, 0.6, 0.5, 0.1) },
             _noise(0.1, 0.1, 3000)
@@ -121,7 +192,7 @@ const DEFAULT_SOUNDS = [
         id: 'jump_5', name: 'Jump - Classic - Double', desc: 'High pitched, quick air jump.',
         layers: [_tone('sine', 400, 600, 0.1, 0.4)]
     },
-    // New Advanced Jumps
+    // Advanced Jumps
     { 
         id: 'j_adv_1', name: 'Jump - Advanced - Trapezoid', desc: 'Using custom Trapezoid wave (Sharpness 0.2)', 
         layers: [{ ..._tone('trapezoid', 150, 400, 0.2, 0.5), shapeParam: 0.2 }]
@@ -152,7 +223,7 @@ const DEFAULT_SOUNDS = [
         id: 'shoot_5', name: 'Shoot - Retro - Sniper', desc: 'High velocity crack + long tail.',
         layers: [_tone('sawtooth', 2000, 50, 0.1, 0.2), _noise(0.3, 0.3, 1500)]
     },
-    // New Advanced Shoots
+    // Advanced Shoots
     { 
         id: 's_adv_1', name: 'Shoot - Advanced - PowerSine', desc: 'Distorted Sine (Power 0.8)', 
         layers: [{ ..._tone('powersine', 900, 100, 0.15, 0.4), shapeParam: 0.8 }]
@@ -183,7 +254,7 @@ const DEFAULT_SOUNDS = [
         id: 'exp_5', name: 'Explosion - Basic - Implosion', desc: 'Reverse-like suction sound.',
         layers: [_tone('sine', 50, 10, 0.5, 0.8), _noise(0.3, 0.3, 800)]
     },
-    // New Advanced Explosions
+    // Advanced Explosions
     { 
         id: 'e_adv_1', name: 'Explosion - Advanced - Metallic', desc: 'Using Metallic custom wave', 
         layers: [
@@ -236,7 +307,7 @@ const DEFAULT_SOUNDS = [
         layers: [_tone('sawtooth', 500, 500, 0.15, 0.2), _tone('sine', 2000, 100, 0.1, 0.3)]
     },
     
-    // --- PICKUP (New) ---
+    // --- PICKUP ---
     { 
         id: 'p_adv_1', name: 'Pickup - Advanced - Organ', desc: 'Organ wave', 
         layers: [{ ..._tone('organ', 800, 1600, 0.15, 0.4) }]
