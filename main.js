@@ -1,5 +1,32 @@
 /**
- * ADVANCED AUDIO ENGINE
+ * MUSIC UTILITIES
+ * Converts note strings (C4, F#3) to frequencies.
+ */
+const MusicUtils = {
+    A4: 440,
+    NOTES: { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2 },
+
+    noteToFreq(noteStr) {
+        if (!noteStr || noteStr === '-' || noteStr === '.') return null;
+        
+        const regex = /^([A-G]#?)(\d)$/;
+        const match = noteStr.match(regex);
+        if (!match) return null;
+
+        const note = match[1];
+        const octave = parseInt(match[2]);
+        
+        // Calculate semitones relative to A4
+        const semitones = this.NOTES[note] + (octave - 4) * 12;
+        
+        // f = 440 * 2^(n/12)
+        return this.A4 * Math.pow(2, semitones / 12);
+    }
+};
+
+/**
+ * AUDIO ENGINE
+ * Handles both Sound Synthesis (Layers, FM, Custom Waves) and Music Sequencing.
  */
 class AudioEngine {
     constructor() {
@@ -13,6 +40,14 @@ class AudioEngine {
         
         // Caches
         this.shaperCache = {};
+
+        // Sequencer State
+        this.isPlayingMusic = false;
+        this.musicTimer = null;
+        this.nextNoteTime = 0;
+        this.currentStep = 0;
+        this.currentMelody = null;
+        this.soundLibrary = [];
     }
 
     resume() {
@@ -27,7 +62,7 @@ class AudioEngine {
         return buffer;
     }
 
-    // --- CUSTOM WAVE GENERATORS (Context Agnostic) ---
+    // --- CUSTOM WAVE GENERATORS ---
 
     getTrapezoidWave(ctx, sharpness) {
         const numCoeffs = 64;
@@ -74,16 +109,14 @@ class AudioEngine {
         return ctx.createPeriodicWave(real, imag);
     }
 
-    // --- WAVESHAPERS (Cached, Context Agnostic) ---
+    // --- WAVESHAPERS ---
 
     getPowerCurve(amount) {
         const key = `pow_${amount}`;
         if (this.shaperCache[key]) return this.shaperCache[key];
         const n_samples = 256;
         const curve = new Float32Array(n_samples);
-        let exponent = 1;
-        if (amount < 0.5) exponent = 0.1 + (amount * 1.8);
-        else exponent = 1.0 + ((amount - 0.5) * 4);
+        let exponent = amount < 0.5 ? 0.1 + (amount * 1.8) : 1.0 + ((amount - 0.5) * 4);
         for (let i = 0; i < n_samples; ++i ) {
             let x = i * 2 / n_samples - 1;
             curve[i] = Math.sign(x) * Math.pow(Math.abs(x), exponent);
@@ -120,14 +153,14 @@ class AudioEngine {
         return curve;
     }
 
-    // --- SCHEDULING LOGIC (Works for Live & Offline) ---
+    // --- SCHEDULING LOGIC ---
 
-    scheduleTone(ctx, destination, params) {
-        const t = ctx.currentTime;
+    scheduleTone(ctx, dest, params, when) {
+        const t = when;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         
-        // 1. Setup Waveform
+        // Waveform
         if (['sine', 'square', 'sawtooth', 'triangle'].includes(params.wave)) {
             osc.type = params.wave;
         } 
@@ -140,24 +173,28 @@ class AudioEngine {
             osc.type = 'sine';
         }
 
-        // 2. Frequency
+        // Frequency
         osc.frequency.setValueAtTime(params.start, t);
-        osc.frequency.exponentialRampToValueAtTime(Math.max(1, params.end), t + params.dur);
+        if (params.start !== params.end) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(1, params.end), t + params.dur);
+        }
 
-        // 3. FM
+        // FM
         if (params.fmActive) {
             const modulator = ctx.createOscillator();
             const modGain = ctx.createGain();
             modulator.frequency.setValueAtTime(params.start * params.fmRatio, t);
-            modulator.frequency.exponentialRampToValueAtTime(params.end * params.fmRatio, t + params.dur);
+            if (params.start !== params.end) {
+                modulator.frequency.exponentialRampToValueAtTime(params.end * params.fmRatio, t + params.dur);
+            }
             modGain.gain.value = params.fmDepth;
             modulator.connect(modGain);
             modGain.connect(osc.frequency);
-            modulator.start();
+            modulator.start(t);
             modulator.stop(t + params.dur);
         }
 
-        // 4. Routing
+        // Routing & Shapers
         let outputNode = osc;
         if (params.wave === 'powersine') {
             const shaper = ctx.createWaveShaper();
@@ -176,83 +213,183 @@ class AudioEngine {
             outputNode = shaper;
         }
 
-        // 5. Volume
-        gain.gain.setValueAtTime(params.vol, t);
+        // Volume Envelope
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(params.vol, t + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
 
         outputNode.connect(gain);
-        gain.connect(destination);
+        gain.connect(dest);
 
-        osc.start();
+        osc.start(t);
         osc.stop(t + params.dur);
     }
 
-    scheduleNoise(ctx, destination, params, noiseBuffer) {
-        const t = ctx.currentTime;
+    scheduleNoise(ctx, dest, params, buffer, when) {
+        const t = when;
         const src = ctx.createBufferSource();
-        src.buffer = noiseBuffer;
+        src.buffer = buffer;
+        
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(params.filter, t);
         filter.frequency.exponentialRampToValueAtTime(10, t + params.dur);
+
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(params.vol, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + params.dur);
+
         src.connect(filter);
         filter.connect(gain);
-        gain.connect(destination);
-        src.start();
+        gain.connect(dest);
+
+        src.start(t);
         src.stop(t + params.dur);
     }
 
-    // --- PUBLIC PLAYBACK ---
+    // --- PLAYBACK METHODS ---
 
-    playTone(params) {
-        this.scheduleTone(this.ctx, this.masterGain, params);
+    // Play a sound effect (one-shot)
+    playSound(soundDef, when = 0) {
+        const t = when || this.ctx.currentTime;
+        soundDef.layers.forEach(l => {
+            if (l.active !== false) {
+                if (l.type === 'tone') this.scheduleTone(this.ctx, this.masterGain, l, t);
+                else this.scheduleNoise(this.ctx, this.masterGain, l, this.liveNoiseBuffer, t);
+            }
+        });
     }
 
-    playNoise(params) {
-        this.scheduleNoise(this.ctx, this.masterGain, params, this.liveNoiseBuffer);
+    // Play a sound as a musical note (overriding frequency)
+    playNote(soundDef, freq, when, duration, volumeScale = 1.0) {
+        const t = when;
+        soundDef.layers.forEach(l => {
+            if (l.active === false) return;
+            
+            // Clone layer params to modify them
+            const p = { ...l };
+            p.vol *= volumeScale;
+
+            if (p.type === 'tone') {
+                // Override pitch for tonal layers
+                p.start = freq;
+                p.end = freq;
+                p.dur = duration; 
+                this.scheduleTone(this.ctx, this.masterGain, p, t);
+            } else {
+                // For noise layers (percussion), usually keep original pitch/filter
+                // but respect duration/volume
+                this.scheduleNoise(this.ctx, this.masterGain, p, this.liveNoiseBuffer, t);
+            }
+        });
+    }
+
+    // --- SEQUENCER ---
+
+    playMusic(melody, soundLibrary) {
+        if (this.isPlayingMusic) this.stopMusic();
+        
+        this.currentMelody = melody;
+        this.soundLibrary = soundLibrary;
+        this.isPlayingMusic = true;
+        this.currentStep = 0;
+        this.nextNoteTime = this.ctx.currentTime + 0.1;
+        
+        this.scheduler();
+    }
+
+    stopMusic() {
+        this.isPlayingMusic = false;
+        if (this.musicTimer) clearTimeout(this.musicTimer);
+    }
+
+    scheduler() {
+        if (!this.isPlayingMusic) return;
+
+        const lookahead = 25.0; // ms
+        const scheduleAheadTime = 0.1; // s
+        const bpm = this.currentMelody.bpm;
+        const secondsPerBeat = 60.0 / bpm;
+        const stepTime = secondsPerBeat / 4; // 16th notes
+
+        while (this.nextNoteTime < this.ctx.currentTime + scheduleAheadTime) {
+            this.scheduleStep(this.currentStep, this.nextNoteTime, stepTime);
+            this.nextNoteTime += stepTime;
+            this.currentStep++;
+            
+            // Loop logic: find max track length
+            let maxLen = 0;
+            this.currentMelody.tracks.forEach(t => {
+                if (t.pattern.length > maxLen) maxLen = t.pattern.length;
+            });
+            if (maxLen === 0) maxLen = 16;
+            
+            if (this.currentStep >= maxLen) this.currentStep = 0;
+        }
+        
+        this.musicTimer = setTimeout(() => this.scheduler(), lookahead);
+    }
+
+    scheduleStep(step, time, stepDuration) {
+        this.currentMelody.tracks.forEach(track => {
+            if (!track.pattern || track.pattern.length === 0) return;
+            
+            // Wrap pattern index
+            const noteStr = track.pattern[step % track.pattern.length];
+            
+            if (noteStr && noteStr !== '-' && noteStr !== '.') {
+                const sound = this.soundLibrary.find(s => s.id === track.instrumentId);
+                if (sound) {
+                    const freq = MusicUtils.noteToFreq(noteStr);
+                    const vol = track.vol !== undefined ? track.vol : 1.0;
+                    
+                    if (freq) {
+                        // It's a tonal note
+                        this.playNote(sound, freq, time, stepDuration * 0.9, vol);
+                    } else {
+                        // It's a percussion hit (no pitch change)
+                        // We just play the sound as is
+                        const p = { ...sound }; // shallow clone wrapper
+                        // We can't easily scale volume of playSound without modifying layers, 
+                        // so we do a quick manual loop here
+                        sound.layers.forEach(l => {
+                            if (l.active !== false) {
+                                const lp = {...l};
+                                lp.vol *= vol;
+                                if (lp.type === 'tone') this.scheduleTone(this.ctx, this.masterGain, lp, time);
+                                else this.scheduleNoise(this.ctx, this.masterGain, lp, this.liveNoiseBuffer, time);
+                            }
+                        });
+                    }
+                }
+            }
+        });
     }
 
     // --- EXPORT TO WAV ---
 
     async renderAndDownload(sound) {
-        // 1. Calculate total duration
         let maxDur = 0;
         sound.layers.forEach(l => {
             if (l.active !== false && l.dur > maxDur) maxDur = l.dur;
         });
         if (maxDur === 0) return;
 
-        // Add a small tail for release
         const renderDur = maxDur + 0.1;
         const sampleRate = 44100;
-
-        // 2. Create Offline Context
         const offlineCtx = new OfflineAudioContext(1, sampleRate * renderDur, sampleRate);
-        
-        // 3. Create a noise buffer specifically for this context (cannot share buffers across contexts easily)
         const offlineNoiseBuffer = this.createNoiseBuffer(offlineCtx);
 
-        // 4. Schedule all layers
         sound.layers.forEach(l => {
             if (l.active !== false) {
-                if (l.type === 'tone') {
-                    this.scheduleTone(offlineCtx, offlineCtx.destination, l);
-                } else {
-                    this.scheduleNoise(offlineCtx, offlineCtx.destination, l, offlineNoiseBuffer);
-                }
+                if (l.type === 'tone') this.scheduleTone(offlineCtx, offlineCtx.destination, l, 0);
+                else this.scheduleNoise(offlineCtx, offlineCtx.destination, l, offlineNoiseBuffer, 0);
             }
         });
 
-        // 5. Render
         const renderedBuffer = await offlineCtx.startRendering();
-
-        // 6. Encode to WAV
         const wavBlob = this.bufferToWav(renderedBuffer, renderDur * sampleRate);
         
-        // 7. Download
         const url = URL.createObjectURL(wavBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -266,53 +403,38 @@ class AudioEngine {
         const buffer = new ArrayBuffer(length);
         const view = new DataView(buffer);
         const channels = [];
-        let i;
-        let sample;
-        let offset = 0;
-        let pos = 0;
+        let i, sample, offset = 0, pos = 0;
 
-        // write WAVE header
-        setUint32(0x46464952);                         // "RIFF"
-        setUint32(length - 8);                         // file length - 8
-        setUint32(0x45564157);                         // "WAVE"
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
-        setUint32(0x20746d66);                         // "fmt " chunk
-        setUint32(16);                                 // length = 16
-        setUint16(1);                                  // PCM (uncompressed)
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
         setUint16(numOfChan);
         setUint32(abuffer.sampleRate);
         setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-        setUint16(numOfChan * 2);                      // block-align
-        setUint16(16);                                 // 16-bit (hardcoded in this encoder)
+        setUint16(numOfChan * 2); // block-align
+        setUint16(16); // 16-bit
 
-        setUint32(0x61746164);                         // "data" - chunk
-        setUint32(length - pos - 4);                   // chunk length
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(length - pos - 4); // chunk length
 
-        // write interleaved data
-        for(i = 0; i < abuffer.numberOfChannels; i++)
-            channels.push(abuffer.getChannelData(i));
+        for(i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
 
         while(pos < length) {
-            for(i = 0; i < numOfChan; i++) {             // interleave channels
-                sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
-                view.setInt16(pos, sample, true);          // write 16-bit sample
+            for(i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset])); 
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; 
+                view.setInt16(pos, sample, true);
                 pos += 2;
             }
-            offset++;                                     // next source sample
+            offset++;
         }
-
         return new Blob([buffer], {type: "audio/wav"});
-
-        function setUint16(data) {
-            view.setUint16(pos, data, true);
-            pos += 2;
-        }
-
-        function setUint32(data) {
-            view.setUint32(pos, data, true);
-            pos += 4;
-        }
     }
 }
 
@@ -322,201 +444,170 @@ class AudioEngine {
 class App {
     constructor() {
         this.audio = new AudioEngine();
-        this.sounds = [];
-        this.selectedId = null;
+        
+        // Load Data
+        this.sounds = typeof DEFAULT_SOUNDS !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_SOUNDS)) : [];
+        this.melodies = typeof DEFAULT_MELODIES !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_MELODIES)) : [];
+        
+        // State
+        this.activeTab = 'sound';
+        this.selectedSoundId = this.sounds.length > 0 ? this.sounds[0].id : null;
+        this.selectedMelodyId = this.melodies.length > 0 ? this.melodies[0].id : null;
+        
         this.collapsedGroups = new Set();
         this.collapsedSubgroups = new Set();
+        
         this.loopTimer = null;
-        this.isLooping = false;
+        this.isLoopingSound = false;
         this.loopInterval = 200;
 
-        this.loadDefaults();
-        this.renderList();
+        this.initUI();
         window.addEventListener('click', () => this.audio.resume(), { once: true });
     }
 
-    loadDefaults() {
-        if (typeof DEFAULT_SOUNDS !== 'undefined') {
-            this.sounds = JSON.parse(JSON.stringify(DEFAULT_SOUNDS));
-        } else {
-            this.sounds = [];
-        }
-        if (this.sounds.length > 0) this.selectedId = this.sounds[0].id;
+    initUI() {
+        this.renderSoundList();
+        this.renderMelodyList();
+        this.renderEditor();
     }
 
-    // --- DATA ---
+    switchTab(tab) {
+        this.activeTab = tab;
+        
+        // Toggle Nav Buttons
+        document.getElementById('nav-sound').classList.toggle('active', tab === 'sound');
+        document.getElementById('nav-music').classList.toggle('active', tab === 'music');
+        
+        // Toggle Sidebars
+        document.getElementById('sidebar-sound').classList.toggle('hidden', tab !== 'sound');
+        document.getElementById('sidebar-music').classList.toggle('hidden', tab !== 'music');
+        
+        // Toggle Views
+        document.getElementById('view-sound').classList.toggle('hidden', tab !== 'sound');
+        document.getElementById('view-music').classList.toggle('hidden', tab !== 'music');
+        
+        // Stop playback when switching
+        this.stopSoundLoop();
+        this.audio.stopMusic();
+        
+        this.renderEditor();
+    }
+
+    // ==========================================
+    // SOUND LOGIC
+    // ==========================================
+
     addNewSound() {
-        const id = 'sound_' + Date.now();
+        const id = 'snd_' + Date.now();
         this.sounds.push({
             id: id,
             name: 'New - Category - Sound',
             desc: 'Description...',
-            layers: [{ 
-                type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5,
-                shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100
-            }]
+            layers: [{ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 }]
         });
-        this.selectedId = id;
-        this.renderList();
+        this.selectedSoundId = id;
+        this.renderSoundList();
         this.renderEditor();
     }
 
     duplicateSound() {
-        if (!this.selectedId) return;
-        const original = this.sounds.find(s => s.id === this.selectedId);
+        if (!this.selectedSoundId) return;
+        const original = this.sounds.find(s => s.id === this.selectedSoundId);
         const copy = JSON.parse(JSON.stringify(original));
-        copy.id = 'sound_' + Date.now();
-        copy.name = copy.name + ' (Copy)';
+        copy.id = 'snd_' + Date.now();
+        copy.name += ' (Copy)';
         this.sounds.push(copy);
-        this.selectedId = copy.id;
-        this.renderList();
+        this.selectedSoundId = copy.id;
+        this.renderSoundList();
         this.renderEditor();
     }
 
     deleteCurrentSound() {
-        if (!this.selectedId || !confirm('Delete sound?')) return;
-        this.sounds = this.sounds.filter(s => s.id !== this.selectedId);
-        this.selectedId = this.sounds.length ? this.sounds[0].id : null;
-        this.renderList();
+        if (!this.selectedSoundId || !confirm('Delete sound?')) return;
+        this.sounds = this.sounds.filter(s => s.id !== this.selectedSoundId);
+        this.selectedSoundId = this.sounds.length ? this.sounds[0].id : null;
+        this.renderSoundList();
         this.renderEditor();
     }
 
     addLayer(type) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (!s) return;
         if (type === 'tone') {
-            sound.layers.push({ 
-                type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5,
-                shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100
-            });
+            s.layers.push({ type: 'tone', active: true, wave: 'sine', start: 440, end: 220, dur: 0.2, vol: 0.5, shapeParam: 0.5, fmActive: false, fmRatio: 2, fmDepth: 100 });
         } else {
-            sound.layers.push({ type: 'noise', active: true, dur: 0.2, vol: 0.5, filter: 1000 });
+            s.layers.push({ type: 'noise', active: true, dur: 0.2, vol: 0.5, filter: 1000 });
         }
         this.renderEditor();
     }
 
-    removeLayer(index) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound) {
-            sound.layers.splice(index, 1);
+    removeLayer(idx) {
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (s) {
+            s.layers.splice(idx, 1);
             this.renderEditor();
-        }
-    }
-
-    importLayers() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-        const textarea = document.getElementById('layerDataInput');
-        if (!textarea) return;
-
-        const text = textarea.value;
-        const lines = text.split('\n');
-        let addedCount = 0;
-
-        lines.forEach(line => {
-            line = line.trim();
-            if (!line) return;
-            try {
-                const layer = JSON.parse(line);
-                if (layer.type && (layer.type === 'tone' || layer.type === 'noise')) {
-                    layer.active = true;
-                    sound.layers.push(layer);
-                    addedCount++;
-                }
-            } catch (e) { console.log('Skipping invalid line'); }
-        });
-
-        if (addedCount > 0) {
-            this.renderEditor();
-            alert(`Imported ${addedCount} layers.`);
-        } else {
-            alert('No valid layer data found to import.');
         }
     }
 
     updateSoundProp(key, value) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound) {
-            sound[key] = value;
-            if (key === 'name') this.renderList();
-            this.generateCode();
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (s) {
+            s[key] = value;
+            if (key === 'name') this.renderSoundList();
+            this.updateCodeOutput(s);
         }
     }
 
-    updateLayer(index, key, value) {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (sound && sound.layers[index]) {
+    updateLayer(idx, key, value) {
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (s && s.layers[idx]) {
             if (['start', 'end', 'dur', 'vol', 'filter', 'shapeParam', 'fmRatio', 'fmDepth'].includes(key)) {
                 value = parseFloat(value);
             }
-            sound.layers[index][key] = value;
-            
+            s.layers[idx][key] = value;
             if (key === 'active' || key === 'wave' || key === 'fmActive') this.renderEditor();
-            else {
-                this.generateCode();
-                this.updateLayerDataBox();
-            }
+            else this.updateCodeOutput(s);
         }
     }
 
-    updateLayerDataBox() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        const box = document.getElementById('layerDataInput');
-        if (sound && box) {
-            const lines = sound.layers.map(l => JSON.stringify(l));
-            box.value = lines.join('\n');
-        }
+    playSound(id = null) {
+        const sid = id || this.selectedSoundId;
+        const s = this.sounds.find(x => x.id === sid);
+        if (s) this.audio.playSound(s);
     }
 
-    // --- PLAYBACK & EXPORT ---
-    playSound(specificId = null) {
-        const idToPlay = specificId || this.selectedId;
-        const sound = this.sounds.find(s => s.id === idToPlay);
-        if (!sound) return;
-        
-        this.audio.resume();
-        sound.layers.forEach(l => {
-            if (l.active !== false) {
-                if (l.type === 'tone') this.audio.playTone(l);
-                else this.audio.playNoise(l);
-            }
-        });
-    }
-
-    downloadWav() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-        this.audio.renderAndDownload(sound);
-    }
-
-    toggleLoop() {
-        this.isLooping ? this.stopLoop() : this.startLoop();
+    toggleSoundLoop() {
+        this.isLoopingSound ? this.stopSoundLoop() : this.startSoundLoop();
         this.renderEditor();
     }
 
-    startLoop() {
-        if (this.isLooping) return;
-        this.isLooping = true;
+    startSoundLoop() {
+        if (this.isLoopingSound) return;
+        this.isLoopingSound = true;
         this.playSound();
         this.loopTimer = setInterval(() => this.playSound(), this.loopInterval);
     }
 
-    stopLoop() {
-        this.isLooping = false;
+    stopSoundLoop() {
+        this.isLoopingSound = false;
         clearInterval(this.loopTimer);
     }
 
     updateLoopInterval(val) {
         this.loopInterval = parseInt(val);
         document.getElementById('loopVal').innerText = this.loopInterval;
-        if (this.isLooping) {
+        if (this.isLoopingSound) {
             clearInterval(this.loopTimer);
             this.loopTimer = setInterval(() => this.playSound(), this.loopInterval);
         }
     }
 
-    // --- UI RENDERING ---
-    collapseAll() {
+    downloadWav() {
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (s) this.audio.renderAndDownload(s);
+    }
+
+    collapseAllSounds() {
         const groups = {};
         this.sounds.forEach(s => {
             const parts = s.name.split(' - ');
@@ -525,13 +616,110 @@ class App {
             this.collapsedGroups.add(cat);
             this.collapsedSubgroups.add(`${cat}|${sub}`);
         });
-        this.renderList();
+        this.renderSoundList();
     }
 
-    renderList() {
+    // ==========================================
+    // MUSIC LOGIC
+    // ==========================================
+
+    addNewMelody() {
+        const id = 'mel_' + Date.now();
+        this.melodies.push({
+            id: id,
+            name: 'New Melody',
+            bpm: 120,
+            tracks: [{ instrumentId: this.sounds[0]?.id, vol: 1.0, pattern: ["C4","-","C4","-"] }]
+        });
+        this.selectedMelodyId = id;
+        this.renderMelodyList();
+        this.renderEditor();
+    }
+
+    duplicateMelody() {
+        if (!this.selectedMelodyId) return;
+        const original = this.melodies.find(m => m.id === this.selectedMelodyId);
+        const copy = JSON.parse(JSON.stringify(original));
+        copy.id = 'mel_' + Date.now();
+        copy.name += ' (Copy)';
+        this.melodies.push(copy);
+        this.selectedMelodyId = copy.id;
+        this.renderMelodyList();
+        this.renderEditor();
+    }
+
+    deleteCurrentMelody() {
+        if (!this.selectedMelodyId || !confirm('Delete melody?')) return;
+        this.melodies = this.melodies.filter(m => m.id !== this.selectedMelodyId);
+        this.selectedMelodyId = this.melodies.length ? this.melodies[0].id : null;
+        this.renderMelodyList();
+        this.renderEditor();
+    }
+
+    addTrack() {
+        const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+        if (m) {
+            m.tracks.push({ instrumentId: this.sounds[0]?.id, vol: 1.0, pattern: ["-","-","-","-"] });
+            this.renderEditor();
+        }
+    }
+
+    removeTrack(idx) {
+        const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+        if (m) {
+            m.tracks.splice(idx, 1);
+            this.renderEditor();
+        }
+    }
+
+    updateMelodyProp(key, value) {
+        const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+        if (m) {
+            m[key] = (key === 'bpm') ? parseInt(value) : value;
+            if (key === 'name') this.renderMelodyList();
+            this.updateCodeOutput(m);
+            if (this.audio.isPlayingMusic) this.toggleMusic(); // Restart to apply BPM
+            if (!this.audio.isPlayingMusic) this.toggleMusic(); // Restart to apply BPM
+        }
+    }
+
+    updateTrack(idx, key, value) {
+        const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+        if (m && m.tracks[idx]) {
+            if (key === 'pattern') {
+                // Convert string back to array
+                m.tracks[idx].pattern = value.toUpperCase().split(/\s+/).filter(x => x);
+            } else if (key === 'vol') {
+                m.tracks[idx].vol = parseFloat(value);
+            } else {
+                m.tracks[idx][key] = value;
+            }
+            this.updateCodeOutput(m);
+        }
+    }
+
+    toggleMusic() {
+        if (this.audio.isPlayingMusic) {
+            this.audio.stopMusic();
+            this.renderEditor();
+        } else {
+            const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+            if (m) {
+                this.audio.playMusic(m, this.sounds);
+                this.renderEditor();
+            }
+        }
+    }
+
+    // ==========================================
+    // RENDERING
+    // ==========================================
+
+    renderSoundList() {
         const list = document.getElementById('soundList');
         list.innerHTML = '';
         const tree = {};
+        
         this.sounds.forEach(s => {
             const parts = s.name.split(' - ');
             const cat = parts[0] || 'Uncategorized';
@@ -543,13 +731,13 @@ class App {
         });
 
         Object.keys(tree).sort().forEach(cat => {
-            const catHeader = document.createElement('div');
             const isCatCollapsed = this.collapsedGroups.has(cat);
+            const catHeader = document.createElement('div');
             catHeader.className = `category-header ${isCatCollapsed ? 'collapsed' : ''}`;
             catHeader.innerHTML = `<span class="arrow">▼</span> ${cat}`;
             catHeader.onclick = () => {
                 isCatCollapsed ? this.collapsedGroups.delete(cat) : this.collapsedGroups.add(cat);
-                this.renderList();
+                this.renderSoundList();
             };
             list.appendChild(catHeader);
 
@@ -562,14 +750,14 @@ class App {
                     subHeader.innerHTML = `<span class="arrow">▼</span> ${sub}`;
                     subHeader.onclick = () => {
                         isSubCollapsed ? this.collapsedSubgroups.delete(subKey) : this.collapsedSubgroups.add(subKey);
-                        this.renderList();
+                        this.renderSoundList();
                     };
                     list.appendChild(subHeader);
 
                     if (!isSubCollapsed) {
                         tree[cat][sub].forEach(s => {
                             const el = document.createElement('div');
-                            el.className = `sound-item ${s.id === this.selectedId ? 'active' : ''}`;
+                            el.className = `list-item ${s.id === this.selectedSoundId ? 'active' : ''}`;
                             
                             const nameSpan = document.createElement('span');
                             nameSpan.innerText = s.displayName;
@@ -587,9 +775,9 @@ class App {
                             el.appendChild(playBtn);
 
                             el.onclick = () => {
-                                this.selectedId = s.id;
-                                this.stopLoop();
-                                this.renderList();
+                                this.selectedSoundId = s.id;
+                                this.stopSoundLoop();
+                                this.renderSoundList();
                                 this.renderEditor();
                             };
                             list.appendChild(el);
@@ -600,13 +788,34 @@ class App {
         });
     }
 
-    renderEditor() {
-        const container = document.getElementById('editor');
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return container.innerHTML = '';
+    renderMelodyList() {
+        const list = document.getElementById('melodyList');
+        list.innerHTML = '';
+        this.melodies.forEach(m => {
+            const el = document.createElement('div');
+            el.className = `list-item ${m.id === this.selectedMelodyId ? 'active' : ''}`;
+            el.innerText = m.name;
+            el.onclick = () => {
+                this.selectedMelodyId = m.id;
+                this.audio.stopMusic();
+                this.renderMelodyList();
+                this.renderEditor();
+            };
+            list.appendChild(el);
+        });
+    }
 
-        let layersHtml = '';
-        sound.layers.forEach((l, idx) => {
+    renderEditor() {
+        if (this.activeTab === 'sound') this.renderSoundEditor();
+        else this.renderMusicEditor();
+    }
+
+    renderSoundEditor() {
+        const container = document.getElementById('view-sound');
+        const s = this.sounds.find(x => x.id === this.selectedSoundId);
+        if (!s) return container.innerHTML = '<div style="padding:20px">No sound selected</div>';
+
+        let layersHtml = s.layers.map((l, idx) => {
             const isActive = l.active !== false;
             const activeClass = isActive ? '' : 'disabled';
             const checked = isActive ? 'checked' : '';
@@ -632,17 +841,13 @@ class App {
                 const fmChecked = l.fmActive ? 'checked' : '';
                 const fmDisplay = l.fmActive ? 'grid' : 'none';
 
-                layersHtml += `
+                return `
                 <div class="layer-card type-tone ${activeClass}">
                     <div class="layer-header">
                         <span>TONE LAYER ${idx+1}</span>
                         <div class="layer-actions">
-                            <label class="toggle-label">
-                                <input type="checkbox" ${fmChecked} onchange="app.updateLayer(${idx}, 'fmActive', this.checked)"> FM
-                            </label>
-                            <label class="toggle-label">
-                                <input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE
-                            </label>
+                            <label class="toggle-label"><input type="checkbox" ${fmChecked} onchange="app.updateLayer(${idx}, 'fmActive', this.checked)"> FM</label>
+                            <label class="toggle-label"><input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE</label>
                             <button class="btn btn-red btn-sm" onclick="app.removeLayer(${idx})">X</button>
                         </div>
                     </div>
@@ -660,8 +865,8 @@ class App {
                                     <option value="trapezoid" ${l.wave==='trapezoid'?'selected':''}>Trapezoid</option>
                                     <option value="organ" ${l.wave==='organ'?'selected':''}>Organ</option>
                                     <option value="metal" ${l.wave==='metal'?'selected':''}>Metallic</option>
-                                    <option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25% (NES)</option>
-                                    <option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon (Heavy)</option>
+                                    <option value="pulse25" ${l.wave==='pulse25'?'selected':''}>Pulse 25%</option>
+                                    <option value="bassoon" ${l.wave==='bassoon'?'selected':''}>Bassoon</option>
                                 </optgroup>
                                 <optgroup label="Shapers">
                                     <option value="powersine" ${l.wave==='powersine'?'selected':''}>Power Sine</option>
@@ -703,14 +908,12 @@ class App {
                     </div>
                 </div>`;
             } else {
-                layersHtml += `
+                return `
                 <div class="layer-card type-noise ${activeClass}">
                     <div class="layer-header">
                         <span>NOISE LAYER ${idx+1}</span>
                         <div class="layer-actions">
-                            <label class="toggle-label">
-                                <input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE
-                            </label>
+                            <label class="toggle-label"><input type="checkbox" ${checked} onchange="app.updateLayer(${idx}, 'active', this.checked)"> ACTIVE</label>
                             <button class="btn btn-red btn-sm" onclick="app.removeLayer(${idx})">X</button>
                         </div>
                     </div>
@@ -730,84 +933,113 @@ class App {
                     </div>
                 </div>`;
             }
-        });
+        }).join('');
 
         container.innerHTML = `
             <div class="editor-header">
                 <div class="header-inputs">
-                    <input type="text" value="${sound.name}" oninput="app.updateSoundProp('name', this.value)">
-                    <textarea placeholder="Description..." oninput="app.updateSoundProp('desc', this.value)">${sound.desc}</textarea>
+                    <input type="text" value="${s.name}" oninput="app.updateSoundProp('name', this.value)">
+                    <textarea placeholder="Description..." oninput="app.updateSoundProp('desc', this.value)">${s.desc || ''}</textarea>
                 </div>
                 <div class="play-controls">
-                    <button class="play-btn ${this.isLooping?'playing':''}" onclick="app.toggleLoop()">${this.isLooping?'STOP':'PLAY<br>LOOP'}</button>
-                    <button class="download-btn" onclick="app.downloadWav()">DOWNLOAD WAV</button>
+                    <button class="play-btn ${this.isLoopingSound?'playing':''}" onclick="app.toggleSoundLoop()">${this.isLoopingSound?'STOP':'PLAY<br>LOOP'}</button>
+                    <button class="download-btn" onclick="app.downloadWav()">WAV</button>
                     <div style="text-align:center; margin-top:5px;">
                         <span id="loopVal" style="color:var(--accent); font-weight:bold;">${this.loopInterval}</span> ms
                         <input type="range" min="50" max="1000" step="10" value="${this.loopInterval}" style="width:100%" oninput="app.updateLoopInterval(this.value)">
                     </div>
                 </div>
             </div>
-
-            <div class="data-exchange">
-                <h4>Layer Data Exchange (Copy/Paste Lines)</h4>
-                <textarea id="layerDataInput" placeholder="Paste layer data here..."></textarea>
-                <div class="data-exchange-controls">
-                    <button class="btn btn-blue btn-sm" onclick="app.importLayers()">IMPORT LAYERS</button>
-                </div>
-            </div>
-
             <div class="layers-container">${layersHtml}</div>
             <div class="add-buttons">
-                <button class="btn btn-blue" onclick="app.addLayer('tone')">+ ADD TONE</button>
-                <button class="btn btn-orange" onclick="app.addLayer('noise')">+ ADD NOISE</button>
-            </div>
-            <div class="code-block">
-                <button class="btn btn-gray btn-sm copy-btn" onclick="app.copyCode()">COPY JSON</button>
-                <div id="codeOutput"></div>
+                <button class="btn btn-blue" onclick="app.addLayer('tone')">+ TONE</button>
+                <button class="btn btn-orange" onclick="app.addLayer('noise')">+ NOISE</button>
             </div>
         `;
-        this.generateCode();
-        this.updateLayerDataBox();
+        this.updateCodeOutput(s);
     }
 
-    generateCode() {
-        const sound = this.sounds.find(s => s.id === this.selectedId);
-        if (!sound) return;
-        const cleanData = {
-            name: sound.name,
-            layers: sound.layers.filter(l => l.active !== false).map(l => {
-                const copy = {...l};
-                delete copy.active;
-                return copy;
-            })
-        };
-        document.getElementById('codeOutput').innerText = JSON.stringify(cleanData, null, 4);
+    renderMusicEditor() {
+        const container = document.getElementById('view-music');
+        const m = this.melodies.find(x => x.id === this.selectedMelodyId);
+        if (!m) return container.innerHTML = '<div style="padding:20px">No melody selected</div>';
+
+        const soundOptions = this.sounds.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+        let tracksHtml = m.tracks.map((t, i) => `
+            <div class="track-row">
+                <div class="track-header">
+                    <select class="track-instrument-select" onchange="app.updateTrack(${i}, 'instrumentId', this.value)">
+                        ${this.sounds.map(s => `<option value="${s.id}" ${s.id === t.instrumentId ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    </select>
+                    <div style="display:flex; align-items:center; gap:5px">
+                        <label style="font-size:10px; color:#95a5a6">VOL</label>
+                        <input class="track-vol-slider" type="range" min="0" max="1" step="0.1" value="${t.vol !== undefined ? t.vol : 1}" onchange="app.updateTrack(${i}, 'vol', this.value)">
+                    </div>
+                    <button class="btn btn-red btn-sm" onclick="app.removeTrack(${i})">X</button>
+                </div>
+                <input class="track-pattern-input" type="text" value="${t.pattern.join(' ')}" onchange="app.updateTrack(${i}, 'pattern', this.value)">
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="editor-header">
+                <div class="header-inputs">
+                    <input type="text" value="${m.name}" oninput="app.updateMelodyProp('name', this.value)">
+                    <div style="display:flex; align-items:center; gap:10px; color:var(--accent); font-weight:bold;">
+                        BPM: <input type="number" value="${m.bpm}" style="width:60px" onchange="app.updateMelodyProp('bpm', this.value)">
+                    </div>
+                </div>
+                <div class="play-controls">
+                    <button class="play-btn ${this.audio.isPlayingMusic ? 'playing' : ''}" onclick="app.toggleMusic()">
+                        ${this.audio.isPlayingMusic ? 'STOP' : 'PLAY'}
+                    </button>
+                </div>
+            </div>
+            <div class="track-list">${tracksHtml}</div>
+            <div class="add-buttons">
+                <button class="btn btn-blue" onclick="app.addTrack()">+ ADD TRACK</button>
+            </div>
+        `;
+        this.updateCodeOutput(m);
+    }
+
+    // --- COMMON UTILS ---
+    updateCodeOutput(obj) {
+        document.getElementById('codeOutput').innerText = JSON.stringify(obj, null, 4);
     }
 
     copyCode() {
-        const code = document.getElementById('codeOutput').innerText;
-        navigator.clipboard.writeText(code).then(() => alert('JSON Data Copied!'));
+        navigator.clipboard.writeText(document.getElementById('codeOutput').innerText);
+        alert('JSON Copied!');
     }
 
-    saveLibrary() {
-        const data = JSON.stringify(this.sounds, null, 2);
-        const blob = new Blob([data], {type: 'application/json'});
+    saveLibrary(type) {
+        const data = type === 'sound' ? this.sounds : this.melodies;
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'game_sounds_v2.json';
+        a.download = type === 'sound' ? 'sounds.json' : 'melodies.json';
         a.click();
     }
 
-    loadLibrary(input) {
+    loadLibrary(input, type) {
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                this.sounds = JSON.parse(e.target.result);
-                this.selectedId = this.sounds[0]?.id;
-                this.renderList();
+                const data = JSON.parse(e.target.result);
+                if (type === 'sound') {
+                    this.sounds = data;
+                    this.selectedSoundId = this.sounds[0]?.id;
+                    this.renderSoundList();
+                } else {
+                    this.melodies = data;
+                    this.selectedMelodyId = this.melodies[0]?.id;
+                    this.renderMelodyList();
+                }
                 this.renderEditor();
             } catch(err) { alert('Error loading file'); }
         };
@@ -815,13 +1047,20 @@ class App {
         input.value = '';
     }
 
-    resetLibrary() {
-        if(confirm("Reset to defaults?")) {
-            this.stopLoop();
-            this.loadDefaults();
-            this.renderList();
-            this.renderEditor();
+    resetLibrary(type) {
+        if(!confirm("Reset to defaults?")) return;
+        if (type === 'sound') {
+            this.stopSoundLoop();
+            this.sounds = typeof DEFAULT_SOUNDS !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_SOUNDS)) : [];
+            this.selectedSoundId = this.sounds[0]?.id;
+            this.renderSoundList();
+        } else {
+            this.audio.stopMusic();
+            this.melodies = typeof DEFAULT_MELODIES !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_MELODIES)) : [];
+            this.selectedMelodyId = this.melodies[0]?.id;
+            this.renderMelodyList();
         }
+        this.renderEditor();
     }
 }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sound Designer</title>
+    <title>Audio Architect: Ultimate</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,6 +15,8 @@
             --success: #2ecc71;
             --input-bg: #233040;
             --subgroup-bg: rgba(0,0,0,0.15);
+            --nav-width: 60px;
+            --sidebar-width: 300px;
         }
 
         body {
@@ -27,14 +29,47 @@
             overflow: hidden;
         }
 
-        /* SIDEBAR */
-        .sidebar {
-            width: 320px;
+        /* --- NAVIGATION TABS --- */
+        .nav-bar {
+            width: var(--nav-width);
+            background: #1e272e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            border-right: 1px solid #444;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 15px;
+            border: none;
+            background: #34495e;
+            color: #7f8c8d;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav-btn:hover { background: #465c71; color: white; }
+        .nav-btn.active { background: var(--accent); color: #2c3e50; box-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+
+        /* --- SIDEBAR (Generic) --- */
+        .sidebar-container {
+            width: var(--sidebar-width);
             background: rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             border-right: 1px solid #444;
         }
+        
+        .hidden { display: none !important; }
 
         .sidebar-header {
             padding: 15px;
@@ -49,12 +84,13 @@
             align-items: center;
         }
 
-        .sound-list {
+        .list-scroll-area {
             flex: 1;
             overflow-y: auto;
             padding-bottom: 10px;
         }
 
+        /* Categories & Items */
         .category-header {
             padding: 10px;
             background: rgba(255,255,255,0.1);
@@ -87,7 +123,7 @@
         .arrow { margin-right: 8px; font-size: 10px; transition: transform 0.2s; }
         .collapsed .arrow { transform: rotate(-90deg); }
 
-        .sound-item {
+        .list-item {
             padding: 5px 10px 5px 35px;
             cursor: pointer;
             border-bottom: 1px solid rgba(255,255,255,0.02);
@@ -99,9 +135,8 @@
             height: 28px;
             color: #95a5a6;
         }
-
-        .sound-item:hover { background: rgba(255,255,255,0.05); color: white; }
-        .sound-item.active { background: var(--accent); color: #2c3e50; font-weight: bold; }
+        .list-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .list-item.active { background: var(--accent); color: #2c3e50; font-weight: bold; }
 
         .sidebar-controls {
             padding: 10px;
@@ -114,13 +149,14 @@
         .sidebar-controls button { width: 100%; }
         .full-width { grid-column: span 2; }
 
-        /* MAIN EDITOR */
-        .editor {
+        /* --- MAIN EDITOR AREA --- */
+        .editor-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             padding: 20px;
             overflow-y: auto;
+            position: relative;
         }
 
         .editor-header {
@@ -176,49 +212,13 @@
         .play-btn.playing { background: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
 
         .download-btn {
-            width: 100%;
-            background: #e67e22;
-            color: white;
-            border: none;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
+            width: 100%; background: #e67e22; color: white; border: none;
+            padding: 5px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
         }
         .download-btn:hover { background: #d35400; }
 
-        /* DATA EXCHANGE */
-        .data-exchange {
-            background: #1e272e;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #444;
-        }
-        .data-exchange h4 { margin: 0 0 5px 0; font-size: 11px; color: #95a5a6; text-transform: uppercase; }
-        .data-exchange textarea {
-            width: 100%;
-            height: 50px;
-            background: #111;
-            color: var(--accent);
-            border: 1px solid #333;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 5px;
-            box-sizing: border-box;
-            resize: vertical;
-            white-space: pre;
-        }
-        .data-exchange-controls {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
-        }
-
-        /* LAYERS */
+        /* --- SOUND EDITOR SPECIFIC --- */
         .layers-container { display: flex; flex-direction: column; gap: 15px; }
-
         .layer-card {
             background: var(--panel);
             border-radius: 8px;
@@ -232,74 +232,43 @@
         .layer-card.type-noise { border-left-color: var(--danger); }
 
         .layer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #bdc3c7;
-            font-size: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-weight: bold; text-transform: uppercase;
+            color: #bdc3c7; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;
         }
-
-        .layer-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .toggle-label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            font-size: 11px;
-            color: var(--text);
-            user-select: none;
-        }
-        .toggle-label:hover { color: white; }
-        .toggle-label input { cursor: pointer; }
+        .layer-actions { display: flex; align-items: center; gap: 15px; }
+        .toggle-label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; color: var(--text); user-select: none; }
+        .layer-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
         
-        .layer-controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
-
-        /* FM SECTION */
         .fm-section {
-            grid-column: 1 / -1;
-            background: rgba(0,0,0,0.2);
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            border: 1px solid rgba(255,255,255,0.05);
+            grid-column: 1 / -1; background: rgba(0,0,0,0.2); padding: 10px;
+            border-radius: 4px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.05);
             border-left: 2px solid var(--accent);
         }
-        .fm-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
+        .fm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
 
         .control-group { display: flex; flex-direction: column; gap: 5px; }
         .control-group label { font-size: 11px; color: #95a5a6; white-space: nowrap; }
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
         .control-group select { background: var(--input-bg); color: white; border: 1px solid #555; padding: 4px; font-size: 11px; }
-
         .val-display { float: right; color: var(--accent); font-family: monospace; }
 
-        .btn {
-            padding: 6px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-            font-size: 11px;
+        /* --- MUSIC EDITOR SPECIFIC --- */
+        .track-list { display: flex; flex-direction: column; gap: 10px; }
+        .track-row {
+            background: #222; padding: 10px; border-radius: 4px;
+            border-left: 4px solid var(--success); display: flex; flex-direction: column; gap: 5px;
         }
+        .track-header { display: flex; justify-content: space-between; align-items: center; }
+        .track-instrument-select { width: 200px; }
+        .track-pattern-input {
+            width: 100%; background: #111; border: 1px solid #333; color: var(--accent);
+            font-family: monospace; font-size: 14px; letter-spacing: 2px; padding: 8px; box-sizing: border-box;
+        }
+        .track-vol-slider { width: 100px; }
+
+        /* --- COMMON UI --- */
+        .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; font-size: 11px; }
         .btn-sm { padding: 2px 6px; font-size: 10px; }
         .btn-blue { background: #3498db; }
         .btn-red { background: var(--danger); }
@@ -310,17 +279,9 @@
         .add-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; padding-bottom: 50px; }
 
         .code-block {
-            background: #1e272e;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            color: #bdc3c7;
-            margin-top: 20px;
-            white-space: pre;
-            overflow-x: auto;
-            position: relative;
-            border: 1px solid #444;
+            background: #1e272e; padding: 15px; border-radius: 4px; font-family: monospace;
+            font-size: 11px; color: #bdc3c7; margin-top: 20px; white-space: pre;
+            overflow-x: auto; position: relative; border: 1px solid #444;
         }
         .copy-btn { position: absolute; top: 10px; right: 10px; }
 
@@ -332,30 +293,70 @@
 </head>
 <body>
 
-<div class="sidebar">
+<!-- NAVIGATION -->
+<div class="nav-bar">
+    <button class="nav-btn active" id="nav-sound" onclick="app.switchTab('sound')" title="Sound Designer">🔊</button>
+    <button class="nav-btn" id="nav-music" onclick="app.switchTab('music')" title="Music Sequencer">🎵</button>
+</div>
+
+<!-- SOUND SIDEBAR -->
+<div class="sidebar-container" id="sidebar-sound">
     <div class="sidebar-header">
-        <span>LIBRARY</span>
-        <button class="btn btn-gray btn-sm" onclick="app.collapseAll()">COLLAPSE ALL</button>
+        <span>SOUND LIB</span>
+        <button class="btn btn-gray btn-sm" onclick="app.collapseAllSounds()">COLLAPSE</button>
     </div>
-    <div class="sound-list" id="soundList"></div>
+    <div class="list-scroll-area" id="soundList"></div>
     <div class="sidebar-controls">
         <button class="btn btn-green" onclick="app.addNewSound()">+ NEW</button>
         <button class="btn btn-gray" onclick="app.duplicateSound()">DUPLICATE</button>
         <button class="btn btn-red full-width" onclick="app.deleteCurrentSound()">DELETE SELECTED</button>
-        <button class="btn btn-gray" onclick="app.saveLibrary()">SAVE LIB</button>
-        <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">LOAD LIB</button>
-        <input type="file" id="fileInput" style="display:none" accept=".json" onchange="app.loadLibrary(this)">
-        <button class="btn btn-red full-width" onclick="app.resetLibrary()">RESET DEFAULTS</button>
+        <button class="btn btn-gray" onclick="app.saveLibrary('sound')">SAVE LIB</button>
+        <button class="btn btn-gray" onclick="document.getElementById('fileInputSound').click()">LOAD LIB</button>
+        <input type="file" id="fileInputSound" style="display:none" accept=".json" onchange="app.loadLibrary(this, 'sound')">
+        <button class="btn btn-red full-width" onclick="app.resetLibrary('sound')">RESET DEFAULTS</button>
     </div>
 </div>
 
-<div class="editor" id="editor">
-    <!-- Content injected by JS -->
+<!-- MUSIC SIDEBAR -->
+<div class="sidebar-container hidden" id="sidebar-music">
+    <div class="sidebar-header">
+        <span>MELODY LIB</span>
+    </div>
+    <div class="list-scroll-area" id="melodyList"></div>
+    <div class="sidebar-controls">
+        <button class="btn btn-green" onclick="app.addNewMelody()">+ NEW</button>
+        <button class="btn btn-gray" onclick="app.duplicateMelody()">DUPLICATE</button>
+        <button class="btn btn-red full-width" onclick="app.deleteCurrentMelody()">DELETE SELECTED</button>
+        <button class="btn btn-gray" onclick="app.saveLibrary('music')">SAVE LIB</button>
+        <button class="btn btn-gray" onclick="document.getElementById('fileInputMusic').click()">LOAD LIB</button>
+        <input type="file" id="fileInputMusic" style="display:none" accept=".json" onchange="app.loadLibrary(this, 'music')">
+        <button class="btn btn-red full-width" onclick="app.resetLibrary('music')">RESET DEFAULTS</button>
+    </div>
 </div>
 
-<!-- 1. Load Presets Data First -->
+<!-- MAIN EDITOR AREA -->
+<div class="editor-area">
+    
+    <!-- SOUND EDITOR VIEW -->
+    <div id="view-sound">
+        <!-- Injected by JS -->
+    </div>
+
+    <!-- MUSIC EDITOR VIEW -->
+    <div id="view-music" class="hidden">
+        <!-- Injected by JS -->
+    </div>
+
+    <!-- SHARED CODE BLOCK -->
+    <div class="code-block">
+        <button class="btn btn-gray btn-sm copy-btn" onclick="app.copyCode()">COPY JSON</button>
+        <div id="codeOutput"></div>
+    </div>
+</div>
+
+<!-- SCRIPTS -->
 <script src="presets.js"></script>
-<!-- 2. Load Application Logic -->
+<script src="melodies.js"></script>
 <script src="main.js"></script>
 
 </body>
